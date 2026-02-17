@@ -1,0 +1,100 @@
+# FleetPulse .gitignore
+
+# Environment Variables
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+*.env
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+
+# Testing
+coverage/
+*.lcov
+.nyc_output
+playwright-report/
+test-results/
+screenshots/
+trace.zip
+
+# Build outputs
+dist/
+build/
+*.tsbuildinfo
+.next/
+out/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+*~
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
+.history/
+
+# Database
+*.sqlite
+*.sqlite3
+*.db
+*.sql.gz
+pacts/
+*.dump
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.bak
+*.cache
+
+# Sensitive Data
+credentials.json
+secrets.json
+private-key*.json
+*.pem
+*.key
+*.cert
+
+# API Documentation (if auto-generated)
+apidoc/
+swagger-output.json
+
+# Misc
+.cache/
+.parcel-cache/
+.eslintcache
+.npm
+.yarn/
+.pnp.*

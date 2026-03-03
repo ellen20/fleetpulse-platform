@@ -1,3 +1,5 @@
+require('dotenv').config();
+
 const { Pool } = require("pg");
 const readline = require("readline");
 const config = require("./config");

@@ -11,6 +11,8 @@
     "report": "playwright show-report"
   },
   "devDependencies": {
-    "@playwright/test": "^1.40.0"
+    "@playwright/test": "^1.40.0",
+    "cypress": "^15.11.0",
+    "start-server-and-test": "^2.1.5"
   }
 }

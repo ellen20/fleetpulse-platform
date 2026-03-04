@@ -2,8 +2,9 @@
 
 > Real-Time EV Fleet Management System — Track vehicles, manage driver assignments, and monitor charging stations from a single dashboard.
 
-![Tests](https://img.shields.io/badge/E2E%20tests-3%20passing-brightgreen)
+![E2E Tests](https://img.shields.io/badge/E2E%20tests-65%2B%20passing-brightgreen)
 ![Pact](https://img.shields.io/badge/pact-verified-brightgreen)
+![Cypress](https://img.shields.io/badge/cypress-tested-brightgreen)
 ![Node](https://img.shields.io/badge/node-%3E%3D18-green)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 
@@ -11,11 +12,13 @@
 
 ## 📸 Overview
 
-FleetPulse is a full-stack portfolio project demonstrating real-world QA engineering practices — including contract testing with Pact and end-to-end testing with Playwright.
+FleetPulse is a full-stack portfolio project demonstrating real-world QA engineering practices — including contract testing with Pact, end-to-end testing with Playwright, and comprehensive E2E testing with Cypress across both the dashboard and driver applications.
 
 **Fleet Map Tab** — Live vehicle locations, status filtering, charging station visibility, paginated vehicle list
 
 **Assignments Tab** — Assign drivers to vehicles, cancel pending assignments, view driver contact details
+
+**Driver App** — Driver-facing portal with PIN authentication, trip status, and assignment management
 
 ---
 
@@ -28,6 +31,7 @@ FleetPulse is a full-stack portfolio project demonstrating real-world QA enginee
 - 🚫 **Double-Booking Prevention** — Database transactions prevent duplicate assignments
 - 🔁 **Auto-Refresh** — Data refreshes every 10 seconds
 - 📄 **Pagination** — Vehicle list shows 10 per page
+- 🔐 **Driver Authentication** — PIN-based login for driver portal
 
 ---
 
@@ -38,7 +42,7 @@ FleetPulse is a full-stack portfolio project demonstrating real-world QA enginee
 | Backend | Node.js, Express |
 | Database | PostgreSQL |
 | Frontend | React, Vite |
-| E2E Testing | Playwright |
+| E2E Testing | Playwright, Cypress |
 | Contract Testing | Pact (Consumer + Provider) |
 
 ---
@@ -63,7 +67,7 @@ fleetpulse-platform/
 │   │   └── provider.verify.test.js   # Pact provider verification
 │   ├── .env.example
 │   └── server.js
-├── dashboard/                        # Frontend React app
+├── dashboard/                        # Fleet management React app (port 5173)
 │   ├── src/
 │   │   ├── App.jsx                   # Main dashboard (Fleet Map + Assignments)
 │   │   └── main.jsx
@@ -71,11 +75,20 @@ fleetpulse-platform/
 │   │   └── fleetpulse.pact.test.js  # Pact consumer tests
 │   ├── index.html
 │   └── vite.config.js
-├── driver-app/                       # Driver-facing app (coming soon)
+├── driver-app/                       # Driver-facing React app (port 5174)
+│   ├── src/
+│   │   └── main.jsx
+│   └── index.html
+├── cypress/                          # Cypress E2E test suite
+│   └── e2e/
+│       ├── dashboard.cy.js           # 30+ dashboard tests
+│       ├── driver-app.cy.js          # 20+ driver app tests
+│       └── api-errors.cy.js          # 15+ API error handling tests
 ├── pacts/                            # Generated Pact contract files
 ├── tests/
 │   └── assignment-workflow.spec.js   # Playwright E2E tests
 ├── .gitignore
+├── cypress.config.js
 ├── package.json
 ├── playwright.config.js
 └── README.md
@@ -130,6 +143,15 @@ npm run dev
 # Running on http://localhost:5173
 ```
 
+### 6. Set up and start the driver app
+
+```bash
+cd driver-app
+npm install
+npm run dev
+# Running on http://localhost:5174
+```
+
 ---
 
 ## 🔌 API Reference
@@ -145,6 +167,7 @@ npm run dev
 |--------|----------|-------------|
 | GET | `/api/drivers` | List all drivers |
 | GET | `/api/drivers/:id` | Get driver by ID |
+| POST | `/api/drivers/login` | Driver PIN authentication |
 
 ### Assignments
 | Method | Endpoint | Description |
@@ -163,6 +186,57 @@ npm run dev
 ---
 
 ## 🧪 Testing
+
+### E2E Tests (Cypress) — 65+ tests
+
+Both the dashboard and driver app must be running before executing Cypress tests.
+
+```bash
+# Install Cypress
+npm install cypress --save-dev
+
+# Open Cypress Test Runner (interactive)
+npx cypress open
+
+# Run all tests headlessly
+npx cypress run
+```
+
+#### dashboard.cy.js — 30+ tests
+- ✅ Header branding and navigation
+- ✅ Stat cards with business logic validation (total = available + charging + maintenance)
+- ✅ Fleet Map status filtering (All, Available, Charging, Maintenance)
+- ✅ Pagination across multiple pages
+- ✅ Assignments table structure and data integrity
+- ✅ Assign driver modal workflow
+- ✅ Cancel assignment confirmation dialog
+- ✅ Driver contact modal
+
+#### driver-app.cy.js — 20+ tests
+- ✅ Login page UI and branding
+- ✅ Form validation: disabled button states, single field checks
+- ✅ Invalid credentials error handling
+- ✅ PIN field max length validation
+- ✅ Successful login and dashboard redirect
+- ✅ Driver dashboard: personalized greeting, date, trip status
+- ✅ Current assignments display and refresh
+- ✅ Logout and session clearing
+- ✅ Multi-driver state tests (On Trip vs Available)
+
+#### api-errors.cy.js — 15+ tests
+- ✅ Complete API failure: UI shows 0 counts gracefully (no crash)
+- ✅ Dashboard layout remains intact on API failure
+- ✅ HTTP error responses: 500 and 404 handled gracefully
+- ✅ Partial API failure: app stability when individual endpoints fail
+- ✅ Slow API response: 3 second delay stability test
+- ✅ Page refresh recovery: data restores after reload
+- ✅ Driver app: login, dashboard, and refresh failure handling
+
+> **Known Issue:** PIN field accepts up to 6 digits despite placeholder stating "4-digit PIN". Documented in `driver-app.cy.js`.
+
+> **Future Improvement:** API error tests will be expanded once error message UI (toast notifications, retry buttons, loading spinners) is implemented.
+
+---
 
 ### E2E Tests (Playwright)
 
@@ -238,10 +312,12 @@ PORT=3001
 - [x] Fleet Map with vehicle pins
 - [x] Assignment management workflow
 - [x] Charging station monitoring
+- [x] Driver authentication portal
 - [x] Playwright E2E tests
 - [x] Pact contract tests (consumer + provider)
+- [x] Cypress E2E tests (dashboard + driver app + API error handling)
+- [ ] Error message UI (toast notifications, retry buttons)
 - [ ] WebSocket real-time updates
-- [ ] Driver mobile app
 - [ ] Route optimization
 - [ ] Maintenance scheduling
 

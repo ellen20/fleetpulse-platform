@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+import { useAuth } from "../context/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 // ============================================================================
 // CONSTANTS & CONFIGURATION
@@ -104,6 +106,13 @@ const Card = ({ children, style, ...props }) => (
 // ============================================================================
 
 export default function FleetDashboard() {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    navigate("/login");
+  };
   const [time, setTime] = useState(new Date());
   const [vehicles, setVehicles] = useState([]);
   const [drivers, setDrivers] = useState([]);
@@ -292,6 +301,8 @@ export default function FleetDashboard() {
           <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 13, color: COLORS.textMuted }}>
             {time.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
           </div>
+          <span style={{ fontSize: 12, color: COLORS.textMuted }}>👤 {user?.name}</span>
+          <button data-testid="logout-btn" onClick={handleLogout} style={{ padding: "6px 12px", borderRadius: 6, border: `1px solid ${COLORS.border}`, background: "transparent", color: COLORS.textMuted, fontSize: 11, fontWeight: 600, cursor: "pointer" }}>Sign out</button>
           <div style={{ width: 8, height: 8, borderRadius: "50%", background: COLORS.green, boxShadow: `0 0 8px ${COLORS.green}`, animation: "pulse 2s infinite" }} />
         </div>
       </header>

@@ -7,6 +7,8 @@
 ![Cypress](https://img.shields.io/badge/cypress-tested-brightgreen)
 ![Node](https://img.shields.io/badge/node-%3E%3D18-green)
 ![License](https://img.shields.io/badge/license-MIT-blue)
+![Security](https://img.shields.io/badge/security-OWASP%20ZAP%20tested-blueviolet)
+![Auth](https://img.shields.io/badge/auth-JWT%20tested-blue)
 
 ---
 
@@ -31,7 +33,10 @@ FleetPulse is a full-stack portfolio project demonstrating real-world QA enginee
 - 🚫 **Double-Booking Prevention** — Database transactions prevent duplicate assignments
 - 🔁 **Auto-Refresh** — Data refreshes every 10 seconds
 - 📄 **Pagination** — Vehicle list shows 10 per page
-- 🔐 **Driver Authentication** — PIN-based login for driver portal
+- 🔐 **Authentication** — PIN-based driver login with session management, protected routes, and logout
+- 🛡️ **Role-Based Access Control (RBAC)** — Admin vs driver permissions enforced at route level
+- 🔑 **JWT Security Testing** — Token validation, expiry, and tampering scenarios tested
+- 🚨 **OWASP ZAP Security Scanning** — API vulnerability testing including injection and auth bypass
 
 ---
 
@@ -44,6 +49,8 @@ FleetPulse is a full-stack portfolio project demonstrating real-world QA enginee
 | Frontend | React, Vite |
 | E2E Testing | Playwright, Cypress |
 | Contract Testing | Pact (Consumer + Provider) |
+| Security Testing | OWASP ZAP, JWT testing |
+| Auth | Session-based auth, RBAC, Protected Routes |
 
 ---
 
@@ -232,6 +239,25 @@ npx cypress run
 - ✅ Page refresh recovery: data restores after reload
 - ✅ Driver app: login, dashboard, and refresh failure handling
 
+### Security Tests (OWASP ZAP + JWT)
+
+**Authentication & Authorization:**
+- ✅ Login flow with valid/invalid credentials
+- ✅ Protected route enforcement — unauthenticated redirect
+- ✅ RBAC validation — admin vs driver role access
+- ✅ Session persistence and logout clearing
+
+**JWT Security Testing:**
+- ✅ Token validation on protected endpoints
+- ✅ Expired token rejection
+- ✅ Tampered token detection
+
+**OWASP ZAP API Security Scanning:**
+- ✅ Authentication bypass attempts
+- ✅ Injection testing on API endpoints
+- ✅ Input validation and boundary testing
+- ✅ Sensitive data exposure checks
+
 > **Known Issue:** PIN field accepts up to 6 digits despite placeholder stating "4-digit PIN". Documented in `driver-app.cy.js`.
 
 > **Future Improvement:** API error tests will be expanded once error message UI (toast notifications, retry buttons, loading spinners) is implemented.
@@ -316,6 +342,9 @@ PORT=3001
 - [x] Playwright E2E tests
 - [x] Pact contract tests (consumer + provider)
 - [x] Cypress E2E tests (dashboard + driver app + API error handling)
+- [x] Session-based authentication with RBAC
+- [x] JWT security testing
+- [x] OWASP ZAP API security scanning
 - [ ] Error message UI (toast notifications, retry buttons)
 - [ ] WebSocket real-time updates
 - [ ] Route optimization

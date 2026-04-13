@@ -1,0 +1,87 @@
+name: Cypress E2E Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  cypress-run:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:14
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: fleetpulse
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: Install root dependencies
+        run: npm install
+
+      - name: Install API dependencies
+        run: |
+          cd api
+          npm install
+
+      - name: Setup environment
+        run: |
+          cd api
+          cp .env.example .env
+          echo "DB_HOST=localhost" >> .env
+          echo "DB_PORT=5432" >> .env
+          echo "DB_NAME=fleetpulse" >> .env
+          echo "DB_USER=postgres" >> .env
+          echo "DB_PASSWORD=postgres" >> .env
+          echo "PORT=3001" >> .env
+
+      - name: Initialize database
+        run: |
+          cd api
+          node db/init.js --fresh
+          node db/seed.js
+
+      - name: Start API server
+        run: |
+          cd api
+          node server.js &
+          sleep 5
+
+      - name: Install dashboard dependencies
+        run: |
+          cd dashboard
+          npm install
+
+      - name: Start dashboard
+        run: |
+          cd dashboard
+          npm run dev &
+          sleep 5
+
+      - name: Run Cypress tests
+        run: npx cypress run --spec "cypress/e2e/auth.cy.js"
+
+      - name: Upload screenshots on failure
+        uses: actions/upload-artifact@v3
+        if: failure()
+        with:
+          name: cypress-screenshots
+          path: cypress/screenshots

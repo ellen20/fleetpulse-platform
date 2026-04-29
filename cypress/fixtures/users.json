@@ -1,0 +1,14 @@
+{
+  "manager": {
+    "email": "manager@fleetpulse.com",
+    "password": "manager123",
+    "name": "Fleet Manager",
+    "role": "manager"
+  },
+  "viewer": {
+    "email": "viewer@fleetpulse.com",
+    "password": "viewer123",
+    "name": "Fleet Viewer",
+    "role": "viewer"
+  }
+}

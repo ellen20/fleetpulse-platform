@@ -898,23 +898,32 @@ export default function FleetDashboard() {
                           <td style={{ padding: "10px 12px", textAlign: "center" }}>
                             {assignment ? (
                               assignment.status === "pending" ? (
+                                user?.role === "manager" ? (
                                 <button
                                   data-testid={`cancel-btn-${v.vehicle_code}`}
                                   onClick={() => handleCancelAssignment(assignment.id)}
                                   style={{ padding: "4px 8px", borderRadius: 4, border: `1px solid ${COLORS.red}`, background: COLORS.redDim, color: COLORS.red, fontSize: 10, fontWeight: 600, cursor: "pointer" }}>
                                   Cancel
                                 </button>
+                                ) : (
+                                  <span style={{ color: COLORS.textDim, fontSize: 9 }}>View only</span>
+                                )
                               ) : (
+                            
                                 <span style={{ color: COLORS.textDim, fontSize: 9 }}>Contact driver</span>
                               )
-                            ) : v.status === "available" ? (
-                              <button
-                                data-testid={`assign-btn-${v.vehicle_code}`}
-                                onClick={() => { setSelectedVehicle(v); setShowDriverModal(true); }}
-                                style={{ padding: "4px 8px", borderRadius: 4, border: "none", background: COLORS.accent, color: COLORS.bg, fontSize: 10, fontWeight: 600, cursor: "pointer" }}>
-                                Assign
-                              </button>
-                            ) : (
+                              ) : v.status === "available" ? (
+                                user?.role === "manager" ? (
+                                <button
+                                  data-testid={`assign-btn-${v.vehicle_code}`}
+                                  onClick={() => { setSelectedVehicle(v); setShowDriverModal(true); }}
+                                  style={{ padding: "4px 8px", borderRadius: 4, border: "none", background: COLORS.accent, color: COLORS.bg, fontSize: 10, fontWeight: 600, cursor: "pointer" }}>
+                                  Assign
+                                </button>
+                                ) : (
+                                  <span style={{ color: COLORS.textDim, fontSize: 9 }}>View only</span>
+                                )
+                              ) : (
                               <span style={{ color: COLORS.textDim, fontSize: 9 }}>—</span>
                             )}
                           </td>

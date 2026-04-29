@@ -200,4 +200,63 @@ describe('Authentication', () => {
     });
   });
 
+  // ─────────────────────────────────────────────────────────
+  // SESSION SECURITY
+  // ─────────────────────────────────────────────────────────
+  describe('Session Security', () => {
+
+    it('should redirect to login with tampered session data - KNOWN SECURITY ISSUE: app accepts tampered session without server validation', () => {
+      cy.window().then((win) => {
+        win.sessionStorage.setItem('fleetpulse_user',
+          '{"id":999,"email":"hacker@evil.com","role":"manager","name":"Hacker"}');
+      });
+      DashboardPage.visit();
+      DashboardPage.shouldRedirectToLogin();
+    });
+
+    it('should redirect to login with invalid JSON in session', () => {
+      cy.window().then((win) => {
+        win.sessionStorage.setItem('fleetpulse_user', 'invalid_json_data');
+      });
+      DashboardPage.visit();
+      DashboardPage.shouldRedirectToLogin();
+    });
+
+    it('should clear session storage on logout', () => {
+      LoginPage.visit();
+      LoginPage.loginAsManager();
+      DashboardPage.shouldBeVisible();
+      DashboardPage.logout();
+      cy.window().then((win) => {
+        expect(win.sessionStorage.getItem('fleetpulse_user')).to.be.null;
+      });
+    });
+
+    it('should not store password in session storage', () => {
+      LoginPage.visit();
+      LoginPage.loginAsManager();
+      DashboardPage.shouldBeVisible();
+      cy.window().then((win) => {
+        const stored = win.sessionStorage.getItem('fleetpulse_user');
+        expect(stored).to.not.be.null;
+        const userData = JSON.parse(stored);
+        expect(userData).to.not.have.property('password');
+        expect(stored).to.not.include('manager123');
+      });
+    });
+
+    it('should not elevate viewer role to manager', () => {
+      LoginPage.visit();
+      LoginPage.loginAsViewer();
+      DashboardPage.shouldBeVisible();
+      cy.window().then((win) => {
+        const stored = win.sessionStorage.getItem('fleetpulse_user');
+        expect(stored).to.not.be.null;
+        const userData = JSON.parse(stored);
+        expect(userData.role).to.equal('viewer');
+        expect(userData.role).to.not.equal('manager');
+      });
+    });
+
+  });
 });

@@ -8,7 +8,8 @@
     "test:headed": "playwright test --headed",
     "test:debug": "playwright test --debug",
     "test:assignment": "playwright test tests/assignment-workflow.spec.js",
-    "report": "playwright show-report"
+    "report": "playwright show-report",
+    "cy:run": "start-server-and-test start http://localhost:3000 cypress:open"
   },
   "devDependencies": {
     "@playwright/test": "^1.40.0",

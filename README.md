@@ -2,13 +2,12 @@
 
 > Real-Time EV Fleet Management System — Track vehicles, manage driver assignments, and monitor charging stations from a single dashboard.
 
-![E2E Tests](https://img.shields.io/badge/E2E%20tests-65%2B%20passing-brightgreen)
+![E2E Tests](https://img.shields.io/badge/E2E%20tests-80%2B%20passing-brightgreen)
 ![Pact](https://img.shields.io/badge/pact-verified-brightgreen)
 ![Cypress](https://img.shields.io/badge/cypress-tested-brightgreen)
 ![Node](https://img.shields.io/badge/node-%3E%3D18-green)
 ![License](https://img.shields.io/badge/license-MIT-blue)
-![Security](https://img.shields.io/badge/security-OWASP%20ZAP%20tested-blueviolet)
-![Auth](https://img.shields.io/badge/auth-JWT%20tested-blue)
+![RBAC](https://img.shields.io/badge/RBAC-manager%20%7C%20viewer-orange)
 
 ---
 
@@ -33,10 +32,8 @@ FleetPulse is a full-stack portfolio project demonstrating real-world QA enginee
 - 🚫 **Double-Booking Prevention** — Database transactions prevent duplicate assignments
 - 🔁 **Auto-Refresh** — Data refreshes every 10 seconds
 - 📄 **Pagination** — Vehicle list shows 10 per page
-- 🔐 **Authentication** — PIN-based driver login with session management, protected routes, and logout
-- 🛡️ **Role-Based Access Control (RBAC)** — Admin vs driver permissions enforced at route level
-- 🔑 **JWT Security Testing** — Token validation, expiry, and tampering scenarios tested
-- 🚨 **OWASP ZAP Security Scanning** — API vulnerability testing including injection and auth bypass
+- 🔐 **Authentication** — Session-based login with protected routes and logout
+- 🛡️ **Role-Based Access Control (RBAC)** — Manager can assign/cancel; Viewer has read-only access enforced in UI
 
 ---
 
@@ -49,8 +46,8 @@ FleetPulse is a full-stack portfolio project demonstrating real-world QA enginee
 | Frontend | React, Vite |
 | E2E Testing | Playwright, Cypress |
 | Contract Testing | Pact (Consumer + Provider) |
-| Security Testing | OWASP ZAP, JWT testing |
 | Auth | Session-based auth, RBAC, Protected Routes |
+| CI/CD | GitHub Actions |
 
 ---
 
@@ -76,25 +73,38 @@ fleetpulse-platform/
 │   └── server.js
 ├── dashboard/                        # Fleet management React app (port 5173)
 │   ├── src/
-│   │   ├── App.jsx                   # Main dashboard (Fleet Map + Assignments)
+│   │   ├── context/
+│   │   │   └── AuthContext.jsx       # Auth state, login/logout, role management
+│   │   ├── pages/
+│   │   │   ├── LoginPage.jsx         # Login form with demo credentials
+│   │   │   └── DashboardPage.jsx     # Fleet Map + Assignments with RBAC
 │   │   └── main.jsx
 │   ├── tests/pact/
-│   │   └── fleetpulse.pact.test.js  # Pact consumer tests
-│   ├── index.html
+│   │   └── fleetpulse.pact.test.js   # Pact consumer tests
 │   └── vite.config.js
 ├── driver-app/                       # Driver-facing React app (port 5174)
 │   ├── src/
-│   │   └── main.jsx
+│   │   ├── App.jsx                   # Driver portal (login, home, assignment screens)
+│   │   └── main.jsx                  # React entry point
 │   └── index.html
 ├── cypress/                          # Cypress E2E test suite
-│   └── e2e/
-│       ├── dashboard.cy.js           # 30+ dashboard tests
-│       ├── driver-app.cy.js          # 20+ driver app tests
-│       └── api-errors.cy.js          # 15+ API error handling tests
+│   ├── e2e/
+│   │   ├── auth.cy.js               # 9 authentication tests
+│   │   ├── dashboard.cy.js          # 14 header, stat cards, fleet map tests
+│   │   ├── assignments.cy.js        # 14 assignment workflow tests
+│   │   ├── rbac.cy.js               # 12 role-based access control tests
+│   │   ├── driver-app.cy.js         # 20+ driver app tests
+│   │   └── api-errors.cy.js         # 15+ API error handling tests
+│   ├── fixtures/
+│   │   └── users.json               # Centralized test credentials (manager + viewer)
+│   └── support/
+│       └── commands.js              # cy.loginAs() custom command
 ├── pacts/                            # Generated Pact contract files
 ├── tests/
 │   └── assignment-workflow.spec.js   # Playwright E2E tests
-├── .gitignore
+├── .github/
+│   └── workflows/
+│       └── cypress.yml               # GitHub Actions CI/CD pipeline
 ├── cypress.config.js
 ├── package.json
 ├── playwright.config.js
@@ -113,7 +123,7 @@ fleetpulse-platform/
 ### 1. Clone the repo
 
 ```bash
-git clone https://github.com/yourusername/fleetpulse-platform.git
+git clone https://github.com/ellen20/fleetpulse-platform.git
 cd fleetpulse-platform
 ```
 
@@ -141,7 +151,7 @@ node server.js
 # Running on http://localhost:3001
 ```
 
-### 5. Set up and start the frontend
+### 5. Set up and start the dashboard
 
 ```bash
 cd dashboard
@@ -182,7 +192,7 @@ npm run dev
 | GET | `/api/assignments` | List active assignments |
 | POST | `/api/assignments` | Create assignment |
 | PATCH | `/api/assignments/:id/cancel` | Cancel assignment |
-| PATCH | `/api/assignments/:id/accept` | Accept assignment |
+| PATCH | `/api/assignments/:id/start` | Start assignment |
 | PATCH | `/api/assignments/:id/complete` | Complete assignment |
 
 ### Charging Stations
@@ -194,7 +204,7 @@ npm run dev
 
 ## 🧪 Testing
 
-### E2E Tests (Cypress) — 65+ tests
+### E2E Tests (Cypress) — 80+ tests
 
 Both the dashboard and driver app must be running before executing Cypress tests.
 
@@ -207,58 +217,96 @@ npx cypress open
 
 # Run all tests headlessly
 npx cypress run
+
+# Run a specific file
+npx cypress run --spec "cypress/e2e/rbac.cy.js"
 ```
 
-#### dashboard.cy.js — 30+ tests
-- ✅ Header branding and navigation
-- ✅ Stat cards with business logic validation (total = available + charging + maintenance)
-- ✅ Fleet Map status filtering (All, Available, Charging, Maintenance)
-- ✅ Pagination across multiple pages
-- ✅ Assignments table structure and data integrity
-- ✅ Assign driver modal workflow
-- ✅ Cancel assignment confirmation dialog
-- ✅ Driver contact modal
+#### Test credentials are managed centrally in `cypress/fixtures/users.json`
+#### Reusable `cy.loginAs('manager')` and `cy.loginAs('viewer')` custom commands
+
+---
+
+#### auth.cy.js — 9 tests
+- ✅ Login page renders correctly
+- ✅ Demo credentials fill form on click
+- ✅ Password toggle shows and hides password
+- ✅ Invalid credentials show error message
+- ✅ Empty fields show error message
+- ✅ Manager can login and reach dashboard
+- ✅ Viewer can login and reach dashboard
+- ✅ Logout redirects to login page
+- ✅ Authenticated user redirected away from login page
+
+#### dashboard.cy.js — 14 tests
+- ✅ Header branding and navigation buttons
+- ✅ Vehicle and driver count displayed
+- ✅ Logged in user name displayed in header
+- ✅ Logout button redirects to login
+- ✅ All four stat cards visible
+- ✅ Total fleet equals sum of all statuses (business logic validation)
+- ✅ Stat cards persist on Assignments view
+- ✅ Default shows all vehicles with pagination
+- ✅ Status filtering: Available, Charging, Maintenance
+- ✅ Pagination page 2 loads remaining vehicles
+
+#### assignments.cy.js — 14 tests
+- ✅ Assignment management header visible
+- ✅ All required table columns present
+- ✅ All vehicles displayed in table
+- ✅ At least one action button visible
+- ✅ Fleet map elements hidden on assignments tab
+- ✅ Assign button opens driver selection modal
+- ✅ Modal shows available drivers only
+- ✅ Modal shows driver details (email, phone, license)
+- ✅ Closing modal with X dismisses it
+- ✅ Assigning a driver closes the modal
+- ✅ Cancel shows confirmation dialog
+- ✅ Confirming cancel removes the assignment
+- ✅ Driver contact modal opens and shows details
+- ✅ Active assignment warning shown in contact modal
+
+#### rbac.cy.js — 12 tests
+- ✅ Manager can see Assign button for available vehicles
+- ✅ Manager can see Cancel button for pending assignments
+- ✅ Manager can open driver selection modal
+- ✅ Manager does not see "View only" text
+- ✅ Manager name displayed in header
+- ✅ Viewer cannot see Assign button
+- ✅ Viewer cannot see Cancel button
+- ✅ Viewer sees "View only" text instead of action buttons
+- ✅ Viewer can still see all vehicles in table
+- ✅ Viewer can still filter vehicles by status
+- ✅ Viewer name displayed in header
+- ✅ Viewer can logout successfully
 
 #### driver-app.cy.js — 20+ tests
 - ✅ Login page UI and branding
-- ✅ Form validation: disabled button states, single field checks
+- ✅ Form validation and disabled button states
 - ✅ Invalid credentials error handling
-- ✅ PIN field max length validation
 - ✅ Successful login and dashboard redirect
-- ✅ Driver dashboard: personalized greeting, date, trip status
+- ✅ Driver dashboard: greeting, date, trip status
 - ✅ Current assignments display and refresh
 - ✅ Logout and session clearing
-- ✅ Multi-driver state tests (On Trip vs Available)
 
 #### api-errors.cy.js — 15+ tests
-- ✅ Complete API failure: UI shows 0 counts gracefully (no crash)
-- ✅ Dashboard layout remains intact on API failure
-- ✅ HTTP error responses: 500 and 404 handled gracefully
-- ✅ Partial API failure: app stability when individual endpoints fail
+- ✅ Zero counts shown when vehicles API fails
+- ✅ Dashboard layout intact on API failure
+- ✅ HTTP 500 and 404 errors handled gracefully
+- ✅ Partial API failure: app stable when individual endpoints fail
 - ✅ Slow API response: 3 second delay stability test
-- ✅ Page refresh recovery: data restores after reload
+- ✅ Page refresh recovery after API comes back online
 - ✅ Driver app: login, dashboard, and refresh failure handling
 
-### Security Tests (OWASP ZAP + JWT)
+---
+
+### Security & Auth Tests
 
 **Authentication & Authorization:**
 - ✅ Login flow with valid/invalid credentials
 - ✅ Protected route enforcement — unauthenticated redirect
-- ✅ RBAC validation — admin vs driver role access
+- ✅ RBAC validation — manager vs viewer role access enforced in UI
 - ✅ Session persistence and logout clearing
-
-**JWT Security Testing:**
-- ✅ Token validation on protected endpoints
-- ✅ Expired token rejection
-- ✅ Tampered token detection
-
-**OWASP ZAP API Security Scanning:**
-- ✅ Authentication bypass attempts
-- ✅ Injection testing on API endpoints
-- ✅ Input validation and boundary testing
-- ✅ Sensitive data exposure checks
-
-> **Known Issue:** PIN field accepts up to 6 digits despite placeholder stating "4-digit PIN". Documented in `driver-app.cy.js`.
 
 > **Future Improvement:** API error tests will be expanded once error message UI (toast notifications, retry buttons, loading spinners) is implemented.
 
@@ -270,7 +318,7 @@ npx cypress run
 # From project root - backend + frontend must be running
 npm install
 npx playwright install chromium
-npm run test:assignment
+npx playwright test
 ```
 
 **Covers:**
@@ -294,6 +342,48 @@ npm run test:pact:verify
 - ✅ `GET /api/drivers` — returns array with correct fields
 - ✅ `GET /api/vehicles` — returns array with correct fields
 - ✅ `POST /api/assignments` — creates with snake_case fields, returns pending status
+
+### CI/CD (GitHub Actions)
+
+Cypress tests run automatically on every push and pull request to `main`:
+
+```yaml
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+```
+
+- ✅ PostgreSQL service spun up automatically
+- ✅ Database initialized and seeded
+- ✅ API server started
+- ✅ Dashboard built and served
+- ✅ Cypress tests executed headlessly
+- ✅ Screenshots uploaded on failure
+
+---
+
+## 🛡️ Role-Based Access Control (RBAC)
+
+FleetPulse enforces two roles in the dashboard:
+
+| Feature | Manager | Viewer |
+|---------|---------|--------|
+| View fleet map | ✅ | ✅ |
+| View vehicle list | ✅ | ✅ |
+| View stat cards | ✅ | ✅ |
+| Filter by status | ✅ | ✅ |
+| View assignments table | ✅ | ✅ |
+| View driver contact info | ✅ | ✅ |
+| **Assign driver to vehicle** | ✅ | ❌ |
+| **Cancel pending assignment** | ✅ | ❌ |
+
+**Demo credentials:**
+| Role | Email | Password |
+|------|-------|----------|
+| Manager | manager@fleetpulse.com | manager123 |
+| Viewer | viewer@fleetpulse.com | viewer123 |
 
 ---
 
@@ -343,8 +433,9 @@ PORT=3001
 - [x] Pact contract tests (consumer + provider)
 - [x] Cypress E2E tests (dashboard + driver app + API error handling)
 - [x] Session-based authentication with RBAC
-- [x] JWT security testing
-- [x] OWASP ZAP API security scanning
+- [x] Role-Based Access Control — manager vs viewer enforced in UI
+- [x] RBAC Cypress test coverage with fixtures-based credentials
+- [x] GitHub Actions CI/CD pipeline
 - [ ] Error message UI (toast notifications, retry buttons)
 - [ ] WebSocket real-time updates
 - [ ] Route optimization

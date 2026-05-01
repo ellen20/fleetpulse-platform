@@ -1,0 +1,73 @@
+version: '3.8'
+
+services:
+  # ── PostgreSQL Database ──────────────────────────────────────
+  postgres:
+    image: postgres:14-alpine
+    container_name: fleetpulse-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: fleetpulse
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── API Server ───────────────────────────────────────────────
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    container_name: fleetpulse-api
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: fleetpulse
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      PORT: 3001
+    ports:
+      - "3001:3001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./api:/app
+      - /app/node_modules
+
+  # ── Dashboard ────────────────────────────────────────────────
+  dashboard:
+    build:
+      context: ./dashboard
+      dockerfile: Dockerfile
+    container_name: fleetpulse-dashboard
+    ports:
+      - "5173:5173"
+    depends_on:
+      - api
+    volumes:
+      - ./dashboard:/app
+      - /app/node_modules
+
+  # ── Driver App ───────────────────────────────────────────────
+  driver-app:
+    build:
+      context: ./driver-app
+      dockerfile: Dockerfile
+    container_name: fleetpulse-driver-app
+    ports:
+      - "5174:5174"
+    depends_on:
+      - api
+    volumes:
+      - ./driver-app:/app
+      - /app/node_modules
+
+volumes:
+  postgres_data:

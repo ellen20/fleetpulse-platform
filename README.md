@@ -8,6 +8,7 @@
 ![Node](https://img.shields.io/badge/node-%3E%3D18-green)
 ![License](https://img.shields.io/badge/license-MIT-blue)
 ![RBAC](https://img.shields.io/badge/RBAC-manager%20%7C%20viewer-orange)
+![Docker](https://img.shields.io/badge/docker-containerized-blue)
 
 ---
 
@@ -34,6 +35,7 @@ FleetPulse is a full-stack portfolio project demonstrating real-world QA enginee
 - 📄 **Pagination** — Vehicle list shows 10 per page
 - 🔐 **Authentication** — Session-based login with protected routes and logout
 - 🛡️ **Role-Based Access Control (RBAC)** — Manager can assign/cancel; Viewer has read-only access enforced in UI
+- 🐳 **Docker Support** — One-command setup with docker-compose
 
 ---
 
@@ -48,6 +50,7 @@ FleetPulse is a full-stack portfolio project demonstrating real-world QA enginee
 | Contract Testing | Pact (Consumer + Provider) |
 | Auth | Session-based auth, RBAC, Protected Routes |
 | CI/CD | GitHub Actions |
+| Containerization | Docker, docker-compose |
 
 ---
 
@@ -56,6 +59,8 @@ FleetPulse is a full-stack portfolio project demonstrating real-world QA enginee
 ```
 fleetpulse-platform/
 ├── api/                              # Backend
+│   ├── Dockerfile                    # API container
+│   └── .dockerignore
 │   ├── db/
 │   │   ├── config.js                 # Database configuration
 │   │   ├── connection.js             # PostgreSQL pool
@@ -72,6 +77,8 @@ fleetpulse-platform/
 │   ├── .env.example
 │   └── server.js
 ├── dashboard/                        # Fleet management React app (port 5173)
+│   ├── Dockerfile                    # Dashboard container
+│   └── .dockerignore
 │   ├── src/
 │   │   ├── context/
 │   │   │   └── AuthContext.jsx       # Auth state, login/logout, role management
@@ -83,6 +90,8 @@ fleetpulse-platform/
 │   │   └── fleetpulse.pact.test.js   # Pact consumer tests
 │   └── vite.config.js
 ├── driver-app/                       # Driver-facing React app (port 5174)
+│   ├── Dockerfile                    # Driver app container
+│   └── .dockerignore
 │   ├── src/
 │   │   ├── App.jsx                   # Driver portal (login, home, assignment screens)
 │   │   └── main.jsx                  # React entry point
@@ -105,15 +114,26 @@ fleetpulse-platform/
 ├── .github/
 │   └── workflows/
 │       └── cypress.yml               # GitHub Actions CI/CD pipeline
+├── docker-compose.yml                # Orchestrates all services
 ├── cypress.config.js
 ├── package.json
 ├── playwright.config.js
 └── README.md
+
+
 ```
 
 ---
 
 ## 🚀 Getting Started
+
+### Quick Start with Docker
+```bash
+docker-compose up
+docker exec fleetpulse-api node db/init.js --fresh
+docker exec fleetpulse-api node db/seed.js
+```
+Visit http://localhost:5173
 
 ### Prerequisites
 
@@ -436,6 +456,7 @@ PORT=3001
 - [x] Role-Based Access Control — manager vs viewer enforced in UI
 - [x] RBAC Cypress test coverage with fixtures-based credentials
 - [x] GitHub Actions CI/CD pipeline
+- [x] Docker containerization with docker-compose
 - [ ] Error message UI (toast notifications, retry buttons)
 - [ ] WebSocket real-time updates
 - [ ] Route optimization

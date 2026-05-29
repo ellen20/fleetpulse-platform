@@ -77,8 +77,8 @@ jobs:
           sleep 5
 
       - name: Run Cypress tests
-        run: npx cypress run --spec "cypress/e2e/auth.cy.js"
-
+        run: npx cypress run --spec "cypress/e2e/*.cy.js,cypress/e2e/*.feature"
+        
       - name: Upload screenshots on failure
         uses: actions/upload-artifact@v4
         if: failure()

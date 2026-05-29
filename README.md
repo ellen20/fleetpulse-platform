@@ -2,7 +2,8 @@
 
 > Real-Time EV Fleet Management System — Track vehicles, manage driver assignments, and monitor charging stations from a single dashboard.
 
-![E2E Tests](https://img.shields.io/badge/E2E%20tests-80%2B%20passing-brightgreen)
+![E2E Tests](https://img.shields.io/badge/E2E%20tests-99%20passing-brightgreen)
+![Cucumber](https://img.shields.io/badge/cucumber-BDD-brightgreen)
 ![Pact](https://img.shields.io/badge/pact-verified-brightgreen)
 ![Cypress](https://img.shields.io/badge/cypress-tested-brightgreen)
 ![Node](https://img.shields.io/badge/node-%3E%3D18-green)
@@ -51,6 +52,7 @@ FleetPulse is a full-stack portfolio project demonstrating real-world QA enginee
 | Auth | Session-based auth, RBAC, Protected Routes |
 | CI/CD | GitHub Actions |
 | Containerization | Docker, docker-compose |
+| BDD Testing | Cucumber (cypress-cucumber-preprocessor) |
 
 ---
 
@@ -103,10 +105,12 @@ fleetpulse-platform/
 │   │   ├── assignments.cy.js        # 14 assignment workflow tests
 │   │   ├── rbac.cy.js               # 12 role-based access control tests
 │   │   ├── driver-app.cy.js         # 20+ driver app tests
-│   │   └── api-errors.cy.js         # 15+ API error handling tests
+│   │   ├── api-errors.cy.js         # 15+ API error handling tests
+│   │   └── *.feature        # 7 Cucumber BDD feature files
 │   ├── fixtures/
 │   │   └── users.json               # Centralized test credentials (manager + viewer)
 │   └── support/
+│       ├── step_definitions/ # 7 Cucumber step definition files
 │       └── commands.js              # cy.loginAs() custom command
 ├── pacts/                            # Generated Pact contract files
 ├── tests/
@@ -224,7 +228,7 @@ npm run dev
 
 ## 🧪 Testing
 
-### E2E Tests (Cypress) — 80+ tests
+### E2E Tests (Cypress) — 80+ tests + 99 BDD scenarios
 
 Both the dashboard and driver app must be running before executing Cypress tests.
 
@@ -317,6 +321,27 @@ npx cypress run --spec "cypress/e2e/rbac.cy.js"
 - ✅ Slow API response: 3 second delay stability test
 - ✅ Page refresh recovery after API comes back online
 - ✅ Driver app: login, dashboard, and refresh failure handling
+
+---
+
+### BDD Tests (Cucumber) — 99 scenarios
+
+```bash
+# Run all feature files
+npx cypress run --spec "cypress/e2e/*.feature"
+```
+
+**7 feature files:**
+| Feature | Scenarios |
+|---------|-----------|
+| auth | 9 |
+| dashboard | 13 |
+| rbac | 14 |
+| assignments | 17 |
+| api-errors | 10 |
+| driver-app | 33 |
+| login | 3 |
+| **Total** | **99** |
 
 ---
 
@@ -457,6 +482,7 @@ PORT=3001
 - [x] RBAC Cypress test coverage with fixtures-based credentials
 - [x] GitHub Actions CI/CD pipeline
 - [x] Docker containerization with docker-compose
+- [x] Cucumber BDD — 7 feature files, 99 scenarios
 - [ ] Error message UI (toast notifications, retry buttons)
 - [ ] WebSocket real-time updates
 - [ ] Route optimization

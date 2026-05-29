@@ -11,8 +11,14 @@
     "report": "playwright show-report"
   },
   "devDependencies": {
+    "@badeball/cypress-cucumber-preprocessor": "^24.0.1",
+    "@bahmutov/cypress-esbuild-preprocessor": "^2.2.8",
     "@playwright/test": "^1.40.0",
     "cypress": "^15.11.0",
     "start-server-and-test": "^2.1.5"
+  },
+  "cypress-cucumber-preprocessor": {
+    "nonGlobalStepDefinitions": false,
+    "stepDefinitions": "cypress/support/step_definitions/**/*.js"
   }
 }

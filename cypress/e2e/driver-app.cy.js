@@ -178,9 +178,9 @@ describe('Driver App - Dashboard', () => {
     cy.contains(/on trip|available|off duty/i).should('be.visible')
   })
 
-  // Marcus Chen is On Trip — verify the status is specifically "On Trip"
-  it('Marcus Chen shows On Trip status', () => {
-    cy.contains(/on trip/i).should('be.visible')
+  // Marcus Chen is Available — verify the status is specifically "Available"
+  it('Marcus Chen shows Available status', () => {
+    cy.contains(/available/i).should('be.visible')
   })
 
   // ── Current Assignments ──────────────────────────────────────

@@ -63,7 +63,7 @@ jobs:
         run: |
           cd api
           node server.js &
-          sleep 5
+          npx wait-on http://localhost:3001 --timeout 60000
 
       - name: Install dashboard dependencies
         run: |
@@ -74,7 +74,7 @@ jobs:
         run: |
           cd dashboard
           npm run dev &
-          sleep 5
+          npx wait-on http://localhost:5173 --timeout 60000
 
       - name: Install driver app dependencies
         run: |
@@ -85,7 +85,7 @@ jobs:
         run: |
           cd driver-app
           npm run dev &
-          sleep 5
+          npx wait-on http://localhost:5174 --timeout 60000
 
       - name: Run Cypress tests
         run: npx cypress run --spec "cypress/e2e/*.cy.js,cypress/e2e/*.feature"

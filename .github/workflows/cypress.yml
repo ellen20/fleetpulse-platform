@@ -63,7 +63,7 @@ jobs:
         run: |
           cd api
           node server.js &
-          npx wait-on http://localhost:3001 --timeout 60000
+          npx wait-on http://localhost:3001/api/vehicles --timeout 60000
 
       - name: Install dashboard dependencies
         run: |

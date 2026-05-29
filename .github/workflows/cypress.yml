@@ -27,10 +27,10 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: 24
 
@@ -76,9 +76,20 @@ jobs:
           npm run dev &
           sleep 5
 
+      - name: Install driver app dependencies
+        run: |
+          cd driver-app
+          npm install
+
+      - name: Start driver app
+        run: |
+          cd driver-app
+          npm run dev &
+          sleep 5
+
       - name: Run Cypress tests
         run: npx cypress run --spec "cypress/e2e/*.cy.js,cypress/e2e/*.feature"
-        
+
       - name: Upload screenshots on failure
         uses: actions/upload-artifact@v4
         if: failure()

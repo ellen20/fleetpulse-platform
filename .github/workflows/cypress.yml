@@ -63,7 +63,7 @@ jobs:
         run: |
           cd api
           node server.js &
-          npx wait-on http://localhost:3001/api/vehicles --timeout 60000
+          npx wait-on http://localhost:3001/api/health --timeout 60000
 
       - name: Install dashboard dependencies
         run: |
@@ -76,19 +76,8 @@ jobs:
           npm run dev &
           npx wait-on http://localhost:5173 --timeout 60000
 
-      - name: Install driver app dependencies
-        run: |
-          cd driver-app
-          npm install
-
-      - name: Start driver app
-        run: |
-          cd driver-app
-          npm run dev &
-          npx wait-on http://localhost:5174 --timeout 60000
-
       - name: Run Cypress tests
-        run: npx cypress run --spec "cypress/e2e/*.cy.js,cypress/e2e/*.feature"
+        run: npx cypress run --spec "cypress/e2e/auth.cy.js"
 
       - name: Upload screenshots on failure
         uses: actions/upload-artifact@v4

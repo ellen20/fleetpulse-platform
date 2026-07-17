@@ -15,7 +15,8 @@
     "@bahmutov/cypress-esbuild-preprocessor": "^2.2.8",
     "@playwright/test": "^1.40.0",
     "cypress": "^15.11.0",
-    "start-server-and-test": "^2.1.5"
+    "start-server-and-test": "^2.1.5",
+    "wait-on": "^9.0.10"
   },
   "cypress-cucumber-preprocessor": {
     "nonGlobalStepDefinitions": false,

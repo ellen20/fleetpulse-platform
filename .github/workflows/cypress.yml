@@ -27,10 +27,10 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: 24
 
@@ -63,7 +63,7 @@ jobs:
         run: |
           cd api
           node server.js &
-          sleep 5
+          npx wait-on http://localhost:3001/api/vehicles --timeout 60000
 
       - name: Install dashboard dependencies
         run: |
@@ -74,10 +74,21 @@ jobs:
         run: |
           cd dashboard
           npm run dev &
-          sleep 5
+          npx wait-on http://localhost:5173 --timeout 60000
+
+      - name: Install driver app dependencies
+        run: |
+          cd driver-app
+          npm install
+
+      - name: Start driver app
+        run: |
+          cd driver-app
+          npm run dev &
+          npx wait-on http://localhost:5174 --timeout 60000
 
       - name: Run Cypress tests
-        run: npx cypress run --spec "cypress/e2e/auth.cy.js"
+        run: npx cypress run --spec "cypress/e2e/*.cy.js,cypress/e2e/*.feature"
 
       - name: Upload screenshots on failure
         uses: actions/upload-artifact@v4

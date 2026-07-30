@@ -7,7 +7,8 @@ import { useNavigate } from "react-router-dom";
 // ============================================================================
 
 const API_BASE = "/api";
-const REFRESH_INTERVAL = 10000; // 10 seconds
+const REFRESH_INTERVAL = 10000;      // 10 seconds
+const ASSIGNMENTS_PAGE_SIZE = 10;    // rows per page in the assignments table
 
 const COLORS = {
   bg: "#0a0f1a",
@@ -29,11 +30,14 @@ const COLORS = {
   textDim: "#64748b",
 };
 
-const MAP_BOUNDS = { minLat: 29.50, maxLat: 30.00, minLng: -95.70, maxLng: -95.10 };
+// Tightened to the actual vehicle spread so 50 pins are readable at default zoom
+const MAP_BOUNDS = { minLat: 29.65, maxLat: 29.82, minLng: -95.48, maxLng: -95.29 };
 
 const VEHICLE_EMOJIS = {
   Tesla: "🔋", Rivian: "🚙", Ford: "🚚", Chevy: "⚡", Chevrolet: "⚡",
   Hyundai: "🔌", BMW: "🏎️", Kia: "🚗", Nissan: "🔋",
+  GMC: "🛻", "Mercedes-Benz": "💎", Audi: "🔴", Lucid: "✨",
+  Porsche: "🏁", Volkswagen: "🔵",
 };
 
 // ============================================================================
@@ -130,6 +134,8 @@ export default function FleetDashboard() {
   const [mapHover, setMapHover] = useState(null);
   const [mapZoom, setMapZoom] = useState(1);
   const [vehicleListPage, setVehicleListPage] = useState(1);
+  const [assignmentsPage, setAssignmentsPage] = useState(1);
+  const [assignmentFilter, setAssignmentFilter] = useState("all"); // all | active | pending | unassigned
 
   useEffect(() => {
     fetchAllData();
@@ -141,6 +147,10 @@ export default function FleetDashboard() {
     const t = setInterval(() => setTime(new Date()), 1000);
     return () => clearInterval(t);
   }, []);
+
+  useEffect(() => {
+    setAssignmentsPage(1);
+  }, [statusFilter, assignmentFilter]);
 
   const fetchAllData = async () => {
     try {
@@ -173,10 +183,10 @@ export default function FleetDashboard() {
 
       if (res.ok) {
         const data = await res.json();
-        alert(`✅ ${data.message || 'Assignment created'}`);
         setShowDriverModal(false);
         setSelectedDriver(null);
-        fetchAllData();
+        fetchAllData();  // start refresh before alert so data is ready when user clicks OK
+        alert(`✅ ${data.message || 'Assignment created'}`);
       } else {
         const err = await res.json();
         alert(`❌ ${err.error}`);
@@ -228,6 +238,9 @@ export default function FleetDashboard() {
     available: vehicles.filter(v => v.status === "available").length,
     charging: vehicles.filter(v => v.status === "charging").length,
     maintenance: vehicles.filter(v => v.status === "maintenance").length,
+    activeAssignments: assignments.filter(a => a.status === "active").length,
+    pendingAssignments: assignments.filter(a => a.status === "pending").length,
+    unassigned: vehicles.filter(v => !getVehicleAssignment(v.id)).length,
   };
 
   if (loading) {
@@ -348,7 +361,7 @@ export default function FleetDashboard() {
                   background: `radial-gradient(ellipse at 40% 40%, ${COLORS.surfaceLight} 0%, ${COLORS.bg} 100%)`
                 }} preserveAspectRatio="xMidYMid meet">
                   
-                  <g transform={`scale(${mapZoom})`}>
+                  <g transform={`translate(${50 * (1 - mapZoom)}, ${50 * (1 - mapZoom)}) scale(${mapZoom})`}>
                     {/* Grid */}
                     {Array.from({ length: 11 }).map((_, i) => (
                       <g key={`grid-${i}`}>
@@ -760,179 +773,216 @@ export default function FleetDashboard() {
         {/* TAB 2: ASSIGNMENTS */}
         {activeTab === "assignments" && (
           <div style={{ animation: "slideUp 0.3s ease" }} data-testid="tab-content-assignments">
-            {/* Status Cards - Clickable Filters */}
+
+            {/* ── Top filter cards (mirrors Fleet Map stat cards) ─────────── */}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 16 }} data-testid="status-cards">
               {[
-                { label: "Total Fleet", status: "all", icon: "📊", count: counts.total, color: COLORS.accent },
-                { label: "Available", status: "available", icon: "✅", count: counts.available, color: COLORS.green },
-                { label: "Charging", status: "charging", icon: "⚡", count: counts.charging, color: COLORS.accent },
-                { label: "Maintenance", status: "maintenance", icon: "🔧", count: counts.maintenance, color: COLORS.red },
+                { label: "Total Fleet", filter: "all",        icon: "📊", count: counts.total,              color: COLORS.accent },
+                { label: "Active",      filter: "active",     icon: "🚗", count: counts.activeAssignments,  color: COLORS.purple },
+                { label: "Pending",     filter: "pending",    icon: "⏳", count: counts.pendingAssignments, color: COLORS.amber  },
+                { label: "Unassigned",  filter: "unassigned", icon: "🔓", count: counts.unassigned,         color: COLORS.green  },
               ].map(item => {
-                const isActive = statusFilter === item.status;
+                const isActive = assignmentFilter === item.filter;
                 return (
                   <Card key={item.label}
-                    data-testid={`status-card-${item.status}`}
+                    data-testid={`assignment-card-${item.filter}`}
                     style={{
-                    padding: 12, borderLeft: `3px solid ${item.color}`, cursor: "pointer",
-                    background: isActive ? COLORS.surfaceLight : COLORS.surface,
-                    border: `1px solid ${isActive ? item.color : COLORS.border}`,
-                    transition: "all 0.2s"
-                  }}
-                  onClick={() => setStatusFilter(isActive ? "all" : item.status)}>
+                      padding: 12, cursor: "pointer",
+                      background: isActive ? COLORS.surfaceLight : COLORS.surface,
+                      border: `1px solid ${isActive ? item.color : COLORS.border}`,
+                      borderLeft: `3px solid ${item.color}`,
+                      transition: "all 0.2s",
+                    }}
+                    onClick={() => setAssignmentFilter(isActive ? "all" : item.filter)}>
                     <div style={{ fontSize: 10, color: COLORS.textDim, textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 }}>
                       {item.icon} {item.label}
                     </div>
-                    <div data-testid={`status-count-${item.status}`} style={{ fontSize: 24, fontWeight: 700, color: item.color }}>{item.count}</div>
+                    <div data-testid={`assignment-count-${item.filter}`} style={{ fontSize: 24, fontWeight: 700, color: item.color }}>{item.count}</div>
                   </Card>
                 );
               })}
             </div>
 
+            {/* ── Two-column layout: table left, live summary right ────────── */}
             <Card style={{ padding: 16 }}>
-              <div style={{ marginBottom: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <div>
-                  <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 4 }}>Assignment Management</h3>
-                  <p style={{ fontSize: 12, color: COLORS.textDim }}>
-                    {statusFilter === "all" 
-                      ? "Showing all vehicles • One driver per vehicle at a time"
-                      : `Filtering: ${statusFilter.charAt(0).toUpperCase() + statusFilter.slice(1)} vehicles only`
-                    }
-                  </p>
+                <div style={{ marginBottom: 14, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div>
+                    <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 4 }}>Assignment Management</h3>
+                    <p style={{ fontSize: 12, color: COLORS.textDim }}>
+                      {{
+                        all:        "Showing all vehicles • One driver per vehicle at a time",
+                        active:     "Filtering: vehicles on an active shift",
+                        pending:    "Filtering: vehicles with a pending assignment",
+                        unassigned: "Filtering: vehicles with no current assignment",
+                      }[assignmentFilter]}
+                    </p>
+                  </div>
+                  {assignmentFilter !== "all" && (
+                    <button onClick={() => setAssignmentFilter("all")} style={{
+                      padding: "6px 12px", borderRadius: 6, border: `1px solid ${COLORS.border}`,
+                      background: COLORS.surfaceLight, color: COLORS.text, fontSize: 12, fontWeight: 600, cursor: "pointer",
+                    }}>
+                      ✕ Clear Filter
+                    </button>
+                  )}
                 </div>
-                {statusFilter !== "all" && (
-                  <button onClick={() => setStatusFilter("all")} style={{
-                    padding: "6px 12px", borderRadius: 6, border: `1px solid ${COLORS.border}`,
-                    background: COLORS.surfaceLight, color: COLORS.text, fontSize: 11, fontWeight: 600, cursor: "pointer"
-                  }}>
-                    ✕ Clear Filter
-                  </button>
-                )}
-              </div>
 
-              <div style={{ overflowX: "auto" }}>
-                <table data-testid="assignments-table" style={{ width: "100%", borderCollapse: "collapse", fontSize: 11 }}>
-                  <thead>
-                    <tr style={{ borderBottom: `2px solid ${COLORS.border}` }}>
-                      <th style={{ padding: "8px 12px", textAlign: "center", color: COLORS.textMuted, fontWeight: 600, textTransform: "uppercase", fontSize: 10, width: 40 }}>#</th>
-                      <th style={{ padding: "8px 12px", textAlign: "left", color: COLORS.textMuted, fontWeight: 600, textTransform: "uppercase", fontSize: 10 }}>Vehicle</th>
-                      <th style={{ padding: "8px 12px", textAlign: "left", color: COLORS.textMuted, fontWeight: 600, textTransform: "uppercase", fontSize: 10 }}>Make/Model</th>
-                      <th style={{ padding: "8px 12px", textAlign: "center", color: COLORS.textMuted, fontWeight: 600, textTransform: "uppercase", fontSize: 10 }}>Battery</th>
-                      <th style={{ padding: "8px 12px", textAlign: "center", color: COLORS.textMuted, fontWeight: 600, textTransform: "uppercase", fontSize: 10 }}>Status</th>
-                      <th style={{ padding: "8px 12px", textAlign: "left", color: COLORS.textMuted, fontWeight: 600, textTransform: "uppercase", fontSize: 10 }}>Assigned Driver</th>
-                      <th style={{ padding: "8px 12px", textAlign: "center", color: COLORS.textMuted, fontWeight: 600, textTransform: "uppercase", fontSize: 10 }}>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody data-testid="assignments-table-body">
-                    {vehicles
-                      .filter(v => statusFilter === "all" || v.status === statusFilter)
-                      .sort((a, b) => a.vehicle_code.localeCompare(b.vehicle_code))
-                      .map((v, index) => {
-                      const assignment = getVehicleAssignment(v.id);
-                      
-                      return (
-                        <tr key={v.id}
-                          data-testid={`vehicle-row-${v.vehicle_code}`}
-                          style={{ borderBottom: `1px solid ${COLORS.border}` }}>
-                          <td style={{ padding: "10px 12px", textAlign: "center", color: COLORS.textDim, fontFamily: "'JetBrains Mono', monospace", fontSize: 10 }}>
-                            {index + 1}
-                          </td>
-                          <td style={{ padding: "10px 12px" }}>
-                            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                              <div style={{ width: 8, height: 8, borderRadius: "50%", background: getVehicleMapColor(v), boxShadow: `0 0 6px ${getVehicleMapColor(v)}` }} />
-                              <span data-testid={`vehicle-code-${v.vehicle_code}`} style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 600, color: COLORS.accent }}>
-                                {v.vehicle_code}
-                              </span>
-                            </div>
-                          </td>
-                          <td style={{ padding: "10px 12px" }}>
-                            <div style={{ fontWeight: 500 }}>{getVehicleEmoji(v.make)} {v.make} {v.model}</div>
-                            <div style={{ fontSize: 9, color: COLORS.textDim }}>{v.year}</div>
-                          </td>
-                          <td style={{ padding: "10px 12px", textAlign: "center" }}>
-                            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
-                              <span data-testid={`battery-${v.vehicle_code}`} style={{ fontWeight: 600, color: v.current_battery_pct > 60 ? COLORS.green : v.current_battery_pct > 30 ? COLORS.amber : COLORS.red }}>
-                                {v.current_battery_pct}%
-                              </span>
-                              <div style={{ width: 40, height: 4, borderRadius: 2, background: COLORS.border, overflow: "hidden" }}>
-                                <div style={{ width: `${v.current_battery_pct}%`, height: "100%", background: v.current_battery_pct > 60 ? COLORS.green : v.current_battery_pct > 30 ? COLORS.amber : COLORS.red }} />
-                              </div>
-                            </div>
-                          </td>
-                          <td data-testid={`vehicle-status-${v.vehicle_code}`} style={{ padding: "10px 12px", textAlign: "center" }}>
-                            <StatusBadge status={v.status} />
-                          </td>
-                          <td data-testid={`driver-cell-${v.vehicle_code}`} style={{ padding: "10px 12px" }}>
-                            {assignment ? (
-                              <div>
-                                <div data-testid={`assignment-status-${v.vehicle_code}`} style={{
-                                  padding: "4px 8px",
-                                  background: assignment.status === "pending" ? COLORS.amberDim : COLORS.purpleDim,
-                                  border: `1px solid ${assignment.status === "pending" ? COLORS.amber : COLORS.purple}`,
-                                  borderRadius: 4, fontSize: 10, display: "inline-block", marginBottom: 4
-                                }}>
-                                  <div style={{ fontWeight: 600, color: assignment.status === "pending" ? COLORS.amber : COLORS.purple }}>
-                                    {assignment.status === "pending" ? "⏳ Pending" : "🚗 Active"}
+                {(() => {
+                  const filteredSorted = vehicles
+                    .filter(v => {
+                      if (assignmentFilter === "all") return true;
+                      const a = getVehicleAssignment(v.id);
+                      if (assignmentFilter === "active")     return a?.status === "active";
+                      if (assignmentFilter === "pending")    return a?.status === "pending";
+                      if (assignmentFilter === "unassigned") return !a;
+                      return true;
+                    })
+                    .sort((a, b) => a.vehicle_code.localeCompare(b.vehicle_code));
+                  const totalAssignmentPages = Math.ceil(filteredSorted.length / ASSIGNMENTS_PAGE_SIZE);
+                  const pageVehicles = filteredSorted.slice(
+                    (assignmentsPage - 1) * ASSIGNMENTS_PAGE_SIZE,
+                    assignmentsPage * ASSIGNMENTS_PAGE_SIZE
+                  );
+                  return (
+                  <>
+                  <div style={{ overflowX: "auto", flex: 1 }}>
+                    <table data-testid="assignments-table" style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                      <thead>
+                        <tr style={{ borderBottom: `2px solid ${COLORS.border}` }}>
+                          <th style={{ padding: "10px 12px", textAlign: "center", color: COLORS.textMuted, fontWeight: 600, textTransform: "uppercase", fontSize: 12, width: 44 }}>#</th>
+                          <th style={{ padding: "10px 12px", textAlign: "left",   color: COLORS.textMuted, fontWeight: 600, textTransform: "uppercase", fontSize: 12 }}>Vehicle</th>
+                          <th style={{ padding: "10px 12px", textAlign: "left",   color: COLORS.textMuted, fontWeight: 600, textTransform: "uppercase", fontSize: 12 }}>Make / Model</th>
+                          <th style={{ padding: "10px 12px", textAlign: "center", color: COLORS.textMuted, fontWeight: 600, textTransform: "uppercase", fontSize: 12 }}>Battery</th>
+                          <th style={{ padding: "10px 12px", textAlign: "center", color: COLORS.textMuted, fontWeight: 600, textTransform: "uppercase", fontSize: 12 }}>Status</th>
+                          <th style={{ padding: "10px 12px", textAlign: "left",   color: COLORS.textMuted, fontWeight: 600, textTransform: "uppercase", fontSize: 12 }}>Assigned Driver</th>
+                          <th style={{ padding: "10px 12px", textAlign: "center", color: COLORS.textMuted, fontWeight: 600, textTransform: "uppercase", fontSize: 12 }}>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody data-testid="assignments-table-body">
+                        {pageVehicles.map((v, index) => {
+                          const globalIndex = (assignmentsPage - 1) * ASSIGNMENTS_PAGE_SIZE + index + 1;
+                          const assignment  = getVehicleAssignment(v.id);
+                          const dotColor    = getVehicleMapColor(v);
+                          return (
+                            <tr key={v.id} data-testid={`vehicle-row-${v.vehicle_code}`}
+                              style={{ borderBottom: `1px solid ${COLORS.border}` }}>
+                              <td style={{ padding: "12px 12px", textAlign: "center", color: COLORS.textDim, fontFamily: "'JetBrains Mono', monospace", fontSize: 12 }}>
+                                {globalIndex}
+                              </td>
+                              <td style={{ padding: "12px 12px" }}>
+                                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                                  <div style={{ width: 9, height: 9, borderRadius: "50%", background: dotColor, boxShadow: `0 0 6px ${dotColor}`, flexShrink: 0 }} />
+                                  <span data-testid={`vehicle-code-${v.vehicle_code}`} style={{ fontFamily: "'JetBrains Mono', monospace", fontWeight: 600, color: COLORS.accent, fontSize: 13 }}>
+                                    {v.vehicle_code}
+                                  </span>
+                                </div>
+                              </td>
+                              <td style={{ padding: "12px 12px" }}>
+                                <div style={{ fontWeight: 500 }}>{getVehicleEmoji(v.make)} {v.make} {v.model}</div>
+                                <div style={{ fontSize: 11, color: COLORS.textDim, marginTop: 2 }}>{v.year}</div>
+                              </td>
+                              <td style={{ padding: "12px 12px", textAlign: "center" }}>
+                                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}>
+                                  <span data-testid={`battery-${v.vehicle_code}`} style={{ fontWeight: 600, color: v.current_battery_pct > 60 ? COLORS.green : v.current_battery_pct > 30 ? COLORS.amber : COLORS.red }}>
+                                    {v.current_battery_pct}%
+                                  </span>
+                                  <div style={{ width: 48, height: 5, borderRadius: 3, background: COLORS.border, overflow: "hidden" }}>
+                                    <div style={{ width: `${v.current_battery_pct}%`, height: "100%", background: v.current_battery_pct > 60 ? COLORS.green : v.current_battery_pct > 30 ? COLORS.amber : COLORS.red }} />
                                   </div>
                                 </div>
-                                <div>
-                                  <button
-                                    data-testid={`driver-contact-btn-${v.vehicle_code}`}
-                                    onClick={() => {
-                                      const driver = drivers.find(d => d.id === assignment.driver_id);
-                                      setShowContactModal(driver);
-                                    }}
-                                    style={{
-                                      background: "none", border: "none",
-                                      color: COLORS.accent, fontSize: 11, fontWeight: 500,
-                                      cursor: "pointer", textDecoration: "underline", padding: 0,
-                                    }}
-                                  >
-                                    {assignment.driver_name}
-                                  </button>
-                                </div>
-                              </div>
-                            ) : (
-                              <span style={{ color: COLORS.textDim, fontSize: 10 }}>—</span>
-                            )}
-                          </td>
-                          <td style={{ padding: "10px 12px", textAlign: "center" }}>
-                            {assignment ? (
-                              assignment.status === "pending" ? (
-                                user?.role === "manager" ? (
-                                <button
-                                  data-testid={`cancel-btn-${v.vehicle_code}`}
-                                  onClick={() => handleCancelAssignment(assignment.id)}
-                                  style={{ padding: "4px 8px", borderRadius: 4, border: `1px solid ${COLORS.red}`, background: COLORS.redDim, color: COLORS.red, fontSize: 10, fontWeight: 600, cursor: "pointer" }}>
-                                  Cancel
-                                </button>
+                              </td>
+                              <td data-testid={`vehicle-status-${v.vehicle_code}`} style={{ padding: "12px 12px", textAlign: "center" }}>
+                                <StatusBadge status={v.status} />
+                              </td>
+                              <td data-testid={`driver-cell-${v.vehicle_code}`} style={{ padding: "12px 12px" }}>
+                                {assignment ? (
+                                  <div>
+                                    <div data-testid={`assignment-status-${v.vehicle_code}`} style={{
+                                      padding: "4px 10px", borderRadius: 4, display: "inline-block", marginBottom: 5, fontSize: 12,
+                                      background: assignment.status === "pending" ? COLORS.amberDim : COLORS.purpleDim,
+                                      border: `1px solid ${assignment.status === "pending" ? COLORS.amber : COLORS.purple}`,
+                                    }}>
+                                      <span style={{ fontWeight: 600, color: assignment.status === "pending" ? COLORS.amber : COLORS.purple }}>
+                                        {assignment.status === "pending" ? "⏳ Pending" : "🚗 Active"}
+                                      </span>
+                                    </div>
+                                    <div>
+                                      <button data-testid={`driver-contact-btn-${v.vehicle_code}`}
+                                        onClick={() => { const drv = drivers.find(d => d.id === assignment.driver_id); setShowContactModal(drv); }}
+                                        style={{ background: "none", border: "none", color: COLORS.accent, fontSize: 13, fontWeight: 500, cursor: "pointer", textDecoration: "underline", padding: 0 }}>
+                                        {assignment.driver_name}
+                                      </button>
+                                    </div>
+                                  </div>
                                 ) : (
-                                  <span style={{ color: COLORS.textDim, fontSize: 9 }}>View only</span>
-                                )
-                              ) : (
-                            
-                                <span style={{ color: COLORS.textDim, fontSize: 9 }}>Contact driver</span>
-                              )
-                              ) : v.status === "available" ? (
-                                user?.role === "manager" ? (
-                                <button
-                                  data-testid={`assign-btn-${v.vehicle_code}`}
-                                  onClick={() => { setSelectedVehicle(v); setShowDriverModal(true); }}
-                                  style={{ padding: "4px 8px", borderRadius: 4, border: "none", background: COLORS.accent, color: COLORS.bg, fontSize: 10, fontWeight: 600, cursor: "pointer" }}>
-                                  Assign
-                                </button>
+                                  <span style={{ color: COLORS.textDim, fontSize: 12 }}>—</span>
+                                )}
+                              </td>
+                              <td style={{ padding: "12px 12px", textAlign: "center" }}>
+                                {assignment ? (
+                                  assignment.status === "pending" ? (
+                                    user?.role === "manager" ? (
+                                      <button data-testid={`cancel-btn-${v.vehicle_code}`}
+                                        onClick={() => handleCancelAssignment(assignment.id)}
+                                        style={{ padding: "5px 10px", borderRadius: 4, border: `1px solid ${COLORS.red}`, background: COLORS.redDim, color: COLORS.red, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+                                        Cancel
+                                      </button>
+                                    ) : (
+                                      <span style={{ color: COLORS.textDim, fontSize: 12 }}>View only</span>
+                                    )
+                                  ) : (
+                                    <span style={{ color: COLORS.textDim, fontSize: 12 }}>Contact driver</span>
+                                  )
+                                ) : v.status === "available" ? (
+                                  user?.role === "manager" ? (
+                                    <button data-testid={`assign-btn-${v.vehicle_code}`}
+                                      onClick={() => { setSelectedVehicle(v); setShowDriverModal(true); }}
+                                      style={{ padding: "5px 10px", borderRadius: 4, border: "none", background: COLORS.accent, color: COLORS.bg, fontSize: 12, fontWeight: 600, cursor: "pointer" }}>
+                                      Assign
+                                    </button>
+                                  ) : (
+                                    <span style={{ color: COLORS.textDim, fontSize: 12 }}>View only</span>
+                                  )
                                 ) : (
-                                  <span style={{ color: COLORS.textDim, fontSize: 9 }}>View only</span>
-                                )
-                              ) : (
-                              <span style={{ color: COLORS.textDim, fontSize: 9 }}>—</span>
-                            )}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+                                  <span style={{ color: COLORS.textDim, fontSize: 12 }}>—</span>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {totalAssignmentPages > 1 && (
+                    <div data-testid="assignments-pagination" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, paddingTop: 14 }}>
+                      <button data-testid="assignments-pagination-prev"
+                        onClick={() => setAssignmentsPage(p => Math.max(1, p - 1))}
+                        disabled={assignmentsPage === 1}
+                        style={{ padding: "5px 12px", borderRadius: 6, border: `1px solid ${COLORS.border}`, background: COLORS.surfaceLight, color: assignmentsPage === 1 ? COLORS.textDim : COLORS.text, fontSize: 14, cursor: assignmentsPage === 1 ? "not-allowed" : "pointer" }}>
+                        ‹
+                      </button>
+                      {Array.from({ length: totalAssignmentPages }, (_, i) => i + 1).map(page => (
+                        <button key={page} data-testid={`assignments-pagination-page-${page}`}
+                          onClick={() => setAssignmentsPage(page)}
+                          style={{ padding: "5px 12px", borderRadius: 6, border: `1px solid ${assignmentsPage === page ? COLORS.accent : COLORS.border}`, background: assignmentsPage === page ? COLORS.accentDim : COLORS.surfaceLight, color: assignmentsPage === page ? COLORS.accent : COLORS.text, fontSize: 13, fontWeight: assignmentsPage === page ? 700 : 400, cursor: "pointer" }}>
+                          {page}
+                        </button>
+                      ))}
+                      <button data-testid="assignments-pagination-next"
+                        onClick={() => setAssignmentsPage(p => Math.min(totalAssignmentPages, p + 1))}
+                        disabled={assignmentsPage === totalAssignmentPages}
+                        style={{ padding: "5px 12px", borderRadius: 6, border: `1px solid ${COLORS.border}`, background: COLORS.surfaceLight, color: assignmentsPage === totalAssignmentPages ? COLORS.textDim : COLORS.text, fontSize: 14, cursor: assignmentsPage === totalAssignmentPages ? "not-allowed" : "pointer" }}>
+                        ›
+                      </button>
+                      <span data-testid="assignments-pagination-info" style={{ fontSize: 12, color: COLORS.textDim, marginLeft: 4 }}>
+                        {(assignmentsPage - 1) * ASSIGNMENTS_PAGE_SIZE + 1}–{Math.min(assignmentsPage * ASSIGNMENTS_PAGE_SIZE, filteredSorted.length)} of {filteredSorted.length}
+                      </span>
+                    </div>
+                  )}
+                  </>
+                  );
+                })()}
             </Card>
           </div>
         )}

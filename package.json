@@ -14,9 +14,15 @@
   "devDependencies": {
     "@badeball/cypress-cucumber-preprocessor": "^24.0.1",
     "@bahmutov/cypress-esbuild-preprocessor": "^2.2.8",
-    "@playwright/test": "^1.40.0",
+    "@cucumber/cucumber": "^13.2.0",
+    "@cucumber/html-formatter": "^24.1.0",
+    "@playwright/test": "^1.61.1",
+    "@types/node": "^26.1.1",
     "cypress": "^15.11.0",
-    "start-server-and-test": "^2.1.5"
+    "start-server-and-test": "^2.1.5",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3",
+    "wait-on": "^9.1.0"
   },
   "cypress-cucumber-preprocessor": {
     "nonGlobalStepDefinitions": false,

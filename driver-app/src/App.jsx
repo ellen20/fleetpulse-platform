@@ -57,7 +57,7 @@ const BatteryDisplay = ({ level, size = "normal" }) => {
   const isLarge = size === "large";
   return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: isLarge ? "center" : "flex-start", gap: 4 }}>
-      {isLarge && <span style={{ fontSize: 36, fontWeight: 700, color, fontVariantNumeric: "tabular-nums" }}>{level}%</span>}
+      {isLarge && <span data-testid="driver-battery-pct" style={{ fontSize: 36, fontWeight: 700, color, fontVariantNumeric: "tabular-nums" }}>{level}%</span>}
       <div style={{ width: isLarge ? 120 : 80, height: isLarge ? 10 : 6, borderRadius: 5, background: COLORS.border, overflow: "hidden" }}>
         <div style={{ width: `${level}%`, height: "100%", borderRadius: 5, background: color, transition: "width 0.6s ease" }} />
       </div>
@@ -79,7 +79,7 @@ const InfoRow = ({ label, value, icon }) => (
   </div>
 );
 
-const Button = ({ children, onClick, variant = "primary", disabled, style: extraStyle }) => {
+const Button = ({ children, onClick, variant = "primary", disabled, style: extraStyle, testId }) => {
   const styles = {
     primary: { background: COLORS.accent, color: COLORS.bg },
     success: { background: COLORS.green, color: "#fff" },
@@ -89,6 +89,7 @@ const Button = ({ children, onClick, variant = "primary", disabled, style: extra
   const s = styles[variant];
   return (
     <button
+      data-testid={testId}
       onClick={onClick}
       disabled={disabled}
       style={{
@@ -102,8 +103,8 @@ const Button = ({ children, onClick, variant = "primary", disabled, style: extra
   );
 };
 
-const Card = ({ children, style }) => (
-  <div style={{ background: COLORS.surface, border: `1px solid ${COLORS.border}`, borderRadius: 16, padding: 20, ...style }}>
+const Card = ({ children, style, ...props }) => (
+  <div style={{ background: COLORS.surface, border: `1px solid ${COLORS.border}`, borderRadius: 16, padding: 20, ...style }} {...props}>
     {children}
   </div>
 );
@@ -136,7 +137,7 @@ function LoginScreen({ onLogin }) {
   };
 
   return (
-    <div style={{ padding: 24, display: "flex", flexDirection: "column", justifyContent: "center", minHeight: "100vh" }}>
+    <div data-testid="driver-login-screen" style={{ padding: 24, display: "flex", flexDirection: "column", justifyContent: "center", minHeight: "100vh" }}>
       <div style={{ textAlign: "center", marginBottom: 40 }}>
         <div style={{
           width: 64, height: 64, borderRadius: 16, margin: "0 auto 16px",
@@ -154,6 +155,7 @@ function LoginScreen({ onLogin }) {
           <div>
             <label style={{ fontSize: 12, color: COLORS.textDim, display: "block", marginBottom: 6, textTransform: "uppercase", letterSpacing: 1 }}>Email</label>
             <input
+              data-testid="driver-email-input"
               type="email"
               placeholder="driver@fleetpulse.dev"
               value={email}
@@ -168,6 +170,7 @@ function LoginScreen({ onLogin }) {
           <div>
             <label style={{ fontSize: 12, color: COLORS.textDim, display: "block", marginBottom: 6, textTransform: "uppercase", letterSpacing: 1 }}>PIN</label>
             <input
+              data-testid="driver-pin-input"
               type="password"
               placeholder="4-digit PIN"
               value={pin}
@@ -181,11 +184,11 @@ function LoginScreen({ onLogin }) {
             />
           </div>
           {error && (
-            <div style={{ padding: "10px 14px", borderRadius: 8, background: COLORS.redDim, color: COLORS.red, fontSize: 13 }}>
+            <div data-testid="driver-login-error" style={{ padding: "10px 14px", borderRadius: 8, background: COLORS.redDim, color: COLORS.red, fontSize: 13 }}>
               {error}
             </div>
           )}
-          <Button onClick={handleLogin} disabled={!email || !pin || loading}>
+          <Button testId="driver-login-btn" onClick={handleLogin} disabled={!email || !pin || loading}>
             {loading ? "Signing in..." : "Sign In"}
           </Button>
         </div>
@@ -221,7 +224,7 @@ function HomeScreen({ driver, onLogout, onViewAssignment }) {
   const pastAssignments = assignments.filter((a) => a.status === "completed" || a.status === "cancelled");
 
   return (
-    <div style={{ padding: 20, paddingBottom: 100 }}>
+    <div data-testid="driver-home-screen" style={{ padding: 20, paddingBottom: 100 }}>
       {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
         <div>
@@ -233,6 +236,7 @@ function HomeScreen({ driver, onLogout, onViewAssignment }) {
           </p>
         </div>
         <button
+          data-testid="driver-logout-btn"
           onClick={onLogout}
           style={{
             padding: "8px 14px", borderRadius: 8, border: `1px solid ${COLORS.border}`,
@@ -244,7 +248,7 @@ function HomeScreen({ driver, onLogout, onViewAssignment }) {
       </div>
 
       {/* Status Card */}
-      <Card style={{ marginBottom: 16, background: `linear-gradient(135deg, ${COLORS.surfaceLight}, ${COLORS.surface})` }}>
+      <Card data-testid="driver-status-card" style={{ marginBottom: 16, background: `linear-gradient(135deg, ${COLORS.surfaceLight}, ${COLORS.surface})` }} >
         <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8 }}>
           <div style={{
             width: 40, height: 40, borderRadius: 10,
@@ -254,7 +258,7 @@ function HomeScreen({ driver, onLogout, onViewAssignment }) {
             {driver.status === "on_trip" ? "🚗" : "✅"}
           </div>
           <div>
-            <div style={{ fontSize: 14, fontWeight: 600 }}>
+            <div data-testid="driver-status-label" style={{ fontSize: 14, fontWeight: 600 }}>
               {driver.status === "on_trip" ? "On Trip" : driver.status === "available" ? "Available" : "Off Duty"}
             </div>
             <div style={{ fontSize: 12, color: COLORS.textDim }}>Driver ID: {driver.id}</div>
@@ -268,7 +272,7 @@ function HomeScreen({ driver, onLogout, onViewAssignment }) {
         {loading ? (
           <Card><div style={{ textAlign: "center", color: COLORS.textDim, padding: 20 }}>Loading...</div></Card>
         ) : activeAssignments.length === 0 ? (
-          <Card>
+          <Card data-testid="driver-no-assignments">
             <div style={{ textAlign: "center", padding: 20 }}>
               <div style={{ fontSize: 32, marginBottom: 8 }}>📋</div>
               <div style={{ fontSize: 14, color: COLORS.textDim }}>No active assignments</div>
@@ -282,6 +286,7 @@ function HomeScreen({ driver, onLogout, onViewAssignment }) {
             {activeAssignments.map((a) => (
               <Card
                 key={a.id}
+                data-testid={`driver-assignment-card-${a.id}`}
                 style={{ cursor: "pointer", borderColor: a.status === "active" ? COLORS.green : COLORS.amber }}
               >
                 <div onClick={() => onViewAssignment(a)}>
@@ -329,7 +334,7 @@ function HomeScreen({ driver, onLogout, onViewAssignment }) {
 
       {/* Refresh button */}
       <div style={{ marginTop: 20 }}>
-        <Button variant="outline" onClick={loadAssignments}>↻ Refresh Assignments</Button>
+        <Button testId="driver-refresh-btn" variant="outline" onClick={loadAssignments}>↻ Refresh Assignments</Button>
       </div>
     </div>
   );
@@ -437,10 +442,11 @@ function AssignmentScreen({ assignment: initialAssignment, driver, onBack, onSta
   }
 
   return (
-    <div style={{ padding: 20, paddingBottom: 100 }}>
+    <div data-testid="driver-assignment-screen" style={{ padding: 20, paddingBottom: 100 }}>
       {/* Top bar */}
       <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
         <button
+          data-testid="driver-back-btn"
           onClick={onBack}
           style={{
             width: 36, height: 36, borderRadius: 10, border: `1px solid ${COLORS.border}`,
@@ -451,7 +457,7 @@ function AssignmentScreen({ assignment: initialAssignment, driver, onBack, onSta
           ←
         </button>
         <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 16, fontWeight: 700 }}>Assignment #{assignment.id}</div>
+          <div data-testid="driver-assignment-id" style={{ fontSize: 16, fontWeight: 700 }}>Assignment #{assignment.id}</div>
           <div style={{ fontSize: 12, color: COLORS.textDim }}>
             {new Date(assignment.assigned_at).toLocaleString()}
           </div>
@@ -464,7 +470,7 @@ function AssignmentScreen({ assignment: initialAssignment, driver, onBack, onSta
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
           <div>
             <div style={{ fontSize: 11, color: COLORS.textDim, textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 }}>Vehicle</div>
-            <div style={{ fontSize: 20, fontWeight: 700 }}>{vehicle.vehicle_code}</div>
+            <div data-testid="driver-vehicle-code" style={{ fontSize: 20, fontWeight: 700 }}>{vehicle.vehicle_code}</div>
             <div style={{ fontSize: 14, color: COLORS.textMuted, marginTop: 2 }}>{vehicle.make} {vehicle.model}</div>
           </div>
           <BatteryDisplay level={vehicle.current_battery_pct} size="large" />
@@ -481,7 +487,7 @@ function AssignmentScreen({ assignment: initialAssignment, driver, onBack, onSta
       {assignment.status === "active" && (
         <Card style={{ marginBottom: 16, textAlign: "center", background: `linear-gradient(135deg, ${COLORS.greenDim}, ${COLORS.surface})`, borderColor: COLORS.green }}>
           <div style={{ fontSize: 11, color: COLORS.green, textTransform: "uppercase", letterSpacing: 2, marginBottom: 8 }}>Shift Duration</div>
-          <div style={{ fontSize: 42, fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", color: COLORS.green, fontVariantNumeric: "tabular-nums" }}>
+          <div data-testid="driver-trip-timer" style={{ fontSize: 42, fontWeight: 700, fontFamily: "'JetBrains Mono', monospace", color: COLORS.green, fontVariantNumeric: "tabular-nums" }}>
             {formatTime(tripTime)}
           </div>
           <div style={{ display: "flex", justifyContent: "center", gap: 24, marginTop: 16 }}>
@@ -534,7 +540,7 @@ function AssignmentScreen({ assignment: initialAssignment, driver, onBack, onSta
 
       {/* Completed summary */}
       {assignment.status === "completed" && (
-        <Card style={{ marginBottom: 16, borderColor: COLORS.accent }}>
+        <Card data-testid="driver-shift-complete" style={{ marginBottom: 16, borderColor: COLORS.accent }}>
           <div style={{ textAlign: "center", padding: 10 }}>
             <div style={{ fontSize: 32, marginBottom: 8 }}>✅</div>
             <div style={{ fontSize: 16, fontWeight: 600, marginBottom: 4 }}>Shift Completed</div>
@@ -547,7 +553,7 @@ function AssignmentScreen({ assignment: initialAssignment, driver, onBack, onSta
 
       {/* Error */}
       {error && (
-        <div style={{ padding: "12px 14px", borderRadius: 10, background: COLORS.redDim, color: COLORS.red, fontSize: 13, marginBottom: 16 }}>
+        <div data-testid="driver-assignment-error" style={{ padding: "12px 14px", borderRadius: 10, background: COLORS.redDim, color: COLORS.red, fontSize: 13, marginBottom: 16 }}>
           {error}
         </div>
       )}
@@ -555,13 +561,13 @@ function AssignmentScreen({ assignment: initialAssignment, driver, onBack, onSta
       {/* Action Buttons */}
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         {assignment.status === "pending" && (
-          <Button variant="success" onClick={handleStart} disabled={loading}>
+          <Button testId="driver-start-shift-btn" variant="success" onClick={handleStart} disabled={loading}>
             {loading ? "Starting..." : "🚗  Start Shift"}
           </Button>
         )}
 
         {assignment.status === "active" && !confirmEnd && (
-          <Button variant="danger" onClick={() => setConfirmEnd(true)}>
+          <Button testId="driver-end-shift-btn" variant="danger" onClick={() => setConfirmEnd(true)}>
             🏁  End Shift
           </Button>
         )}
@@ -572,15 +578,15 @@ function AssignmentScreen({ assignment: initialAssignment, driver, onBack, onSta
               <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 4 }}>End your shift now?</div>
               <div style={{ fontSize: 12, color: COLORS.textDim }}>This will mark the trip as completed</div>
             </Card>
-            <Button variant="danger" onClick={handleComplete} disabled={loading}>
+            <Button testId="driver-confirm-end-btn" variant="danger" onClick={handleComplete} disabled={loading}>
               {loading ? "Completing..." : "Yes, End Shift"}
             </Button>
-            <Button variant="outline" onClick={() => setConfirmEnd(false)}>Cancel</Button>
+            <Button testId="driver-cancel-end-btn" variant="outline" onClick={() => setConfirmEnd(false)}>Cancel</Button>
           </>
         )}
 
         {assignment.status === "completed" && (
-          <Button variant="outline" onClick={onBack}>← Back to Home</Button>
+          <Button testId="driver-back-home-btn" variant="outline" onClick={onBack}>← Back to Home</Button>
         )}
       </div>
     </div>

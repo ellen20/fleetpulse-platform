@@ -25,6 +25,13 @@ jobs:
 
       - name: Start apps with Docker
         run: docker compose up --build -d
+      
+      - name: Debug container status
+        if: always()
+        run: |
+          docker compose ps
+          echo "--- API logs ---"
+          docker compose logs api
 
       - name: Wait for services to be ready
         run: npx wait-on http://localhost:3001 http://localhost:5173 http://localhost:5174 --timeout 60000 --interval 1000

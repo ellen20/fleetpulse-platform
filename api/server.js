@@ -93,7 +93,8 @@ app.use((req, res) => {
 // Only start server if this file is run directly (not imported in tests)
 if (require.main === module) {
   const PORT = process.env.PORT || 3001;
-  app.listen(PORT, () => {
+  const HOST = '0.0.0.0';
+  app.listen(PORT, HOST, () => {
     console.log(`⚡ FleetPulse API running on http://localhost:${PORT}`);
     console.log(`📡 API overview: http://localhost:${PORT}/api`);
     console.log(`💚 Health check: http://localhost:${PORT}/api/health\n`);

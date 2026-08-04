@@ -30,8 +30,10 @@ jobs:
         if: always()
         run: |
           docker compose ps
-          echo "--- API logs ---"
-          docker compose logs api
+          echo "--- API container inspect (restart count) ---"
+          docker inspect fleetpulse-api --format='{{.RestartCount}}'
+          echo "--- API logs (all, not just latest) ---"
+          docker compose logs api --timestamps
 
       - name: Wait for services to be ready
         run: npx wait-on http://localhost:3001 http://localhost:5173 http://localhost:5174 --timeout 60000 --interval 1000

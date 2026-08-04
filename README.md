@@ -114,11 +114,13 @@ fleetpulse-platform/
 │       ├── step_definitions/ # 7 Cucumber step definition files
 │       └── commands.js              # cy.loginAs() custom command
 ├── pacts/                            # Generated Pact contract files
-├── tests/
-│   └── assignment-workflow.spec.js   # Playwright E2E tests
+├── playwright-ts/                    # Playwright TypeScript E2E tests
+│   └── tests/
+│       └── assignment-flow.spec.ts   # Cross-app, multi-context assignment-lifecycle test
 ├── .github/
 │   └── workflows/
-│       └── cypress.yml               # GitHub Actions CI/CD pipeline
+│       ├── cypress.yml               # Cypress E2E CI/CD pipeline
+│       └── playwright.yml            # Playwright E2E CI/CD pipeline
 ├── docker-compose.yml                # Orchestrates all services
 ├── cypress.config.js
 ├── package.json
@@ -371,6 +373,7 @@ npx playwright test
 - ✅ Full assignment creation workflow
 - ✅ Cancel pending assignment
 - ✅ Fleet Map displays correctly after assignment
+- ✅ **Cross-app, multi-context assignment-lifecycle test** — validates state sync between the manager dashboard and driver app running on separate origins, using Playwright's multi-context/multi-page capabilities to simulate both apps simultaneously
 
 ### Contract Tests (Pact)
 
@@ -391,8 +394,9 @@ npm run test:pact:verify
 
 ### CI/CD (GitHub Actions)
 
-Cypress tests run automatically on every push and pull request to `main`:
+Two workflows run automatically on push and pull request:
 
+**Cypress E2E Tests** — runs on `main`:
 ```yaml
 on:
   push:
@@ -400,13 +404,26 @@ on:
   pull_request:
     branches: [main]
 ```
-
 - ✅ PostgreSQL service spun up automatically
 - ✅ Database initialized and seeded
 - ✅ API server started
 - ✅ Dashboard built and served
 - ✅ Cypress tests executed headlessly
 - ✅ Screenshots uploaded on failure
+
+**Playwright TypeScript E2E** — runs on `main`/`master`:
+```yaml
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+```
+- ✅ Docker Compose spins up API, PostgreSQL, dashboard, and driver app
+- ✅ Health-check-based readiness verification (`/api/health`)
+- ✅ Database initialized and seeded before tests run
+- ✅ Cross-app, multi-context assignment-flow test executed against live containers
+- ✅ Playwright HTML report uploaded as artifact
 
 ---
 

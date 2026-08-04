@@ -11,6 +11,7 @@
 ![RBAC](https://img.shields.io/badge/RBAC-manager%20%7C%20viewer-orange)
 ![Docker](https://img.shields.io/badge/docker-containerized-blue)
 ![CI](https://github.com/ellen20/fleetpulse-platform/actions/workflows/cypress.yml/badge.svg)
+![Playwright CI](https://github.com/ellen20/fleetpulse-platform/actions/workflows/playwright.yml/badge.svg)
 ---
 
 ## 📸 Overview

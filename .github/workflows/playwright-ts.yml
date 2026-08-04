@@ -30,7 +30,9 @@ jobs:
         run: npx wait-on http://localhost:3001/api/health http://localhost:5173 http://localhost:5174 --timeout 60000 --interval 1000
 
       - name: Seed database
-        run: docker compose exec -T api node db/seed.js
+        run: |
+          docker compose exec -T api node db/init.js
+          docker compose exec -T api node db/seed.js
 
       - name: Run Playwright tests
         run: npx playwright test playwright-ts/tests/assignment-flow.spec.ts

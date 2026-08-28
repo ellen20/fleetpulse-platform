@@ -12,23 +12,26 @@
  * Uses two isolated browser contexts (one per app) to exercise the true
  * cross-origin behavior a single-context runner cannot cover.
  */
-import { test, expect, type Browser, type Dialog } from '@playwright/test';
+import { test, expect, type Browser } from '@playwright/test';
 import { LoginPage } from '../pages/LoginPage';
 import { DashboardPage } from '../pages/DashboardPage';
 import { DriverAppPage } from '../pages/DriverAppPage';
 import { resetAssignments } from '../helpers/cleanup';
-
-const MANAGER     = { email: 'manager@fleetpulse.com', password: 'manager123', name: 'Fleet Manager' };
-const TEST_DRIVER = { name: 'Marcus Chen', email: 'marcus.chen@fleetpulse.dev', pin: '1234' };
+import { captureDialogs } from '../helpers/dialogs';
+import { MANAGER, TEST_DRIVER } from '../fixtures/users';
 
 const DASHBOARD_POLL_TIMEOUT = 15_000;
 
 test.describe('Assignment flow — manager assigns, driver accepts', () => {
   test.setTimeout(90_000);
 
-  test('full lifecycle: assign → pending → active → completed', async ({ browser }: { browser: Browser }) => {
+  test('full lifecycle: assign → pending → active → completed', async ({ browser }: { browser: Browser }, testInfo) => {
     const managerCtx  = await browser.newContext({ baseURL: 'http://localhost:5173' });
     const driverCtx   = await browser.newContext({ baseURL: 'http://localhost:5174' });
+
+    await managerCtx.tracing.start({ screenshots: true, snapshots: true });
+    await driverCtx.tracing.start({ screenshots: true, snapshots: true });
+
     const managerPage = await managerCtx.newPage();
     const driverPage  = await driverCtx.newPage();
 
@@ -112,7 +115,7 @@ test.describe('Assignment flow — manager assigns, driver accepts', () => {
         await expect(allDriverCards.nth(i)).toContainText('Available', { ignoreCase: true });
       }
 
-      // ── PHASE 5: Assign to Marcus Chen ────────────────────────────────────
+      // ── PHASE 5: Assign to first available driver ────────────────────────────────────
       const driverCard = allDriverCards.filter({ hasText: TEST_DRIVER.name }).first();
       await expect(driverCard).toBeVisible();
       const driverId = (await driverCard.getAttribute('data-testid'))!.replace('driver-card-', '');
@@ -122,24 +125,18 @@ test.describe('Assignment flow — manager assigns, driver accepts', () => {
       await expect(assignDriverBtn).toContainText(vehicleCode);
 
       // Capture both the confirm dialog and the success alert
-      let confirmMsg = '';
-      let alertMsg   = '';
-      const dialogHandler = async (dialog: Dialog) => {
-        if (dialog.type() === 'confirm') { confirmMsg = dialog.message(); await dialog.accept(); }
-        else                             { alertMsg   = dialog.message(); await dialog.accept(); }
-      };
-      managerPage.on('dialog', dialogHandler);
+      const assignDialogs = captureDialogs(managerPage);
       await assignDriverBtn.click();
       await expect(managerPage.getByTestId('driver-selection-modal')).not.toBeVisible();
-      managerPage.off('dialog', dialogHandler);
+      assignDialogs.stop();
 
       // Confirm dialog must name the correct vehicle AND driver
-      expect(confirmMsg).toContain(vehicleCode);
-      expect(confirmMsg).toContain(TEST_DRIVER.name);
+      expect(assignDialogs.messages.confirm).toContain(vehicleCode);
+      expect(assignDialogs.messages.confirm).toContain(TEST_DRIVER.name);
 
       // Success alert must name the correct vehicle AND driver
-      expect(alertMsg).toContain(vehicleCode);
-      expect(alertMsg).toContain(TEST_DRIVER.name);
+      expect(assignDialogs.messages.alert).toContain(vehicleCode);
+      expect(assignDialogs.messages.alert).toContain(TEST_DRIVER.name);
 
       // ── PHASE 6: Assigned Driver column shows pending + driver name ─────────
       // Scope assertions to the specific vehicle row to confirm placement is correct
@@ -220,6 +217,14 @@ test.describe('Assignment flow — manager assigns, driver accepts', () => {
         .toContainText('available', { ignoreCase: true });
 
     } finally {
+      // Save traces only on failure to keep artifacts small
+      if (testInfo.status !== testInfo.expectedStatus) {
+        await managerCtx.tracing.stop({ path: 'test-results/manager-trace.zip' });
+        await driverCtx.tracing.stop({ path: 'test-results/driver-trace.zip' });
+      } else {
+        await managerCtx.tracing.stop();
+        await driverCtx.tracing.stop();
+      }
       await managerCtx.close();
       await driverCtx.close();
     }

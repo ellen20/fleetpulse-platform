@@ -7,7 +7,7 @@
     "test:ui": "playwright test --ui",
     "test:headed": "playwright test --headed",
     "test:debug": "playwright test --debug",
-    "test:assignment": "playwright test tests/assignment-workflow.spec.js",
+    "test:flow": "playwright test tests/assignment-flow.spec.ts tests/cancel-flow.spec.ts tests/multi-assignment-flow.spec.ts tests/rbac-live-view.spec.ts tests/shift-guard-flow.spec.ts",
     "report": "playwright show-report",
     "cy:run": "start-server-and-test start http://localhost:3000 cypress:open"
   },

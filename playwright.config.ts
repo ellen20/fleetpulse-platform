@@ -14,7 +14,18 @@ export default defineConfig({
   },
   projects: [
     {
+      name: 'api',
+      testDir: './playwright-ts/tests/api',
+      use: {
+        baseURL: 'http://localhost:3001/api/',
+      },
+    },
+    {
       name: 'chromium',
+      testDir: './playwright-ts/tests',
+      testIgnore: '**/api/**',
+      fullyParallel: false,
+      workers: 1,
       use: { ...devices['Desktop Chrome'] },
     },
   ],

@@ -53,7 +53,7 @@ FleetPulse is a full-stack portfolio project demonstrating real-world QA enginee
 | Auth | Session-based auth, RBAC, Protected Routes |
 | CI/CD | GitHub Actions |
 | Containerization | Docker, docker-compose |
-| BDD Testing | Cucumber (cypress-cucumber-preprocessor) |
+| BDD Testing | Cucumber (cypress-cucumber-preprocessor), Gherkin feature files (Playwright) |
 
 ---
 
@@ -68,7 +68,7 @@ fleetpulse-platform/
 │   │   ├── config.js                 # Database configuration
 │   │   ├── connection.js             # PostgreSQL pool
 │   │   ├── init.js                   # Schema creation
-│   │   └── seed.js                   # Sample data (13 vehicles, 12 drivers)
+│   │   └── seed.js                   # Sample data (50 vehicles, 50 drivers, 6 charging stations)
 │   ├── routes/
 │   │   ├── vehicles.js
 │   │   ├── drivers.js
@@ -115,21 +115,38 @@ fleetpulse-platform/
 │       └── commands.js              # cy.loginAs() custom command
 ├── pacts/                            # Generated Pact contract files
 ├── playwright-ts/                    # Playwright TypeScript E2E tests
+│   ├── features/                     # Gherkin BDD specs (documentation-only)
+│   │   ├── assignment-flow.feature
+│   │   ├── cancel-flow.feature
+│   │   ├── multi-assignment-flow.feature
+│   │   ├── rbac-live-view.feature
+│   │   └── shift-guard-flow.feature
+│   ├── fixtures/
+│   │   └── users.ts                  # Centralized test credentials (manager, driver, viewer)
+│   ├── helpers/
+│   │   ├── cleanup.ts                # resetAssignments() — clears state before each test
+│   │   └── dialogs.ts                # captureDialogs() — shared dialog-handling utility
+│   ├── pages/
+│   │   ├── DashboardPage.ts
+│   │   ├── DriverAppPage.ts
+│   │   └── LoginPage.ts
 │   └── tests/
-│       └── assignment-flow.spec.ts   # Cross-app, multi-context assignment-lifecycle test
+│       ├── api/                      # Pure HTTP API tests (no browser)
+│       ├── assignment-flow.spec.ts   # Cross-app, multi-context assignment-lifecycle test
+│       ├── cancel-flow.spec.ts       # Manager cancels pending assignment
+│       ├── multi-assignment-flow.spec.ts  # Two independent assignments coexisting
+│       ├── rbac-live-view.spec.ts    # Viewer sees live updates, read-only enforced
+│       └── shift-guard-flow.spec.ts  # Two-step end-shift confirmation guard
 ├── .github/
 │   └── workflows/
 │       ├── cypress.yml               # Cypress E2E CI/CD pipeline
-│       └── playwright.yml            # Playwright E2E CI/CD pipeline
+│       └── playwright-ts.yml         # Playwright E2E CI/CD pipeline
 ├── docker-compose.yml                # Orchestrates all services
 ├── cypress.config.js
 ├── package.json
-├── playwright.config.js
+├── playwright.config.ts
 └── README.md
-
-
 ```
-
 ---
 
 ## 🚀 Getting Started
@@ -168,7 +185,7 @@ cp .env.example .env
 ```bash
 node db/init.js --fresh
 node db/seed.js
-# Seeds 13 vehicles, 12 drivers, 6 charging stations
+# Seeds 50 vehicles, 50 drivers, 6 charging stations
 ```
 
 ### 4. Start the API
@@ -360,20 +377,33 @@ npx cypress run --spec "cypress/e2e/*.feature"
 
 ---
 
-### E2E Tests (Playwright)
+### E2E Tests (Playwright TypeScript)
 
 ```bash
 # From project root - backend + frontend must be running
 npm install
 npx playwright install chromium
-npx playwright test
+npm test                    # runs all projects
+npm run test:api            # API-only project (parallel-safe, stateless)
+npm run test:chromium       # UI flow specs (serial execution)
+npm run test:flow           # all 5 flow specs by name
 ```
 
-**Covers:**
-- ✅ Full assignment creation workflow
-- ✅ Cancel pending assignment
-- ✅ Fleet Map displays correctly after assignment
-- ✅ **Cross-app, multi-context assignment-lifecycle test** — validates state sync between the manager dashboard and driver app running on separate origins, using Playwright's multi-context/multi-page capabilities to simulate both apps simultaneously
+**5 flow specs covering the full assignment lifecycle:**
+- ✅ **assignment-flow** — full lifecycle: assign → pending → active → completed, validated across manager dashboard and driver app running as separate origins via Playwright's multi-context capability
+- ✅ **cancel-flow** — manager cancels a pending assignment before the driver accepts; verifies dashboard and driver app both revert cleanly
+- ✅ **multi-assignment-flow** — two independent vehicle assignments created sequentially; verifies cancelling one has zero effect on the other
+- ✅ **rbac-live-view** — a read-only "viewer" role sees assignment changes propagate via dashboard polling, with action buttons never exposed
+- ✅ **shift-guard-flow** — validates the two-step "End Shift" confirmation guard; cancelling the guard keeps the shift active, confirming ends it cleanly
+
+**Test infrastructure:**
+- Shared `fixtures/users.ts` for manager, driver, and viewer credentials
+- Shared `helpers/dialogs.ts` (`captureDialogs()`) for capturing and asserting on native confirm/alert dialog content
+- Conditional Playwright tracing — traces are only saved to disk on test failure, keeping CI artifacts lean
+- **Serial execution** (`workers: 1`) on the UI flow project — these tests share a live backend/database, so parallel execution risks cross-test state collisions; the separate `api` project (stateless HTTP tests) remains fully parallel for speed
+
+**BDD documentation:**
+- `features/*.feature` — Gherkin-style prose (one file per flow) describing each scenario in plain language, kept as readable specs alongside their executable `.spec.ts` counterparts (not wired to a test runner)
 
 ### Contract Tests (Pact)
 
@@ -411,18 +441,18 @@ on:
 - ✅ Cypress tests executed headlessly
 - ✅ Screenshots uploaded on failure
 
-**Playwright TypeScript E2E** — runs on `main`/`master`:
+**Playwright TypeScript E2E** — runs on `main`:
 ```yaml
 on:
   push:
-    branches: [main, master]
+    branches: [main]
   pull_request:
-    branches: [main, master]
+    branches: [main]
 ```
 - ✅ Docker Compose spins up API, PostgreSQL, dashboard, and driver app
 - ✅ Health-check-based readiness verification (`/api/health`)
 - ✅ Database initialized and seeded before tests run
-- ✅ Cross-app, multi-context assignment-flow test executed against live containers
+- ✅ All 5 flow specs executed against live containers, serially, to avoid shared-backend collisions
 - ✅ Playwright HTML report uploaded as artifact
 
 ---
@@ -492,7 +522,7 @@ PORT=3001
 - [x] Assignment management workflow
 - [x] Charging station monitoring
 - [x] Driver authentication portal
-- [x] Playwright E2E tests
+- [x] Playwright E2E tests (5 flow specs, multi-context, RBAC, shift guard)
 - [x] Pact contract tests (consumer + provider)
 - [x] Cypress E2E tests (dashboard + driver app + API error handling)
 - [x] Session-based authentication with RBAC
@@ -500,7 +530,8 @@ PORT=3001
 - [x] RBAC Cypress test coverage with fixtures-based credentials
 - [x] GitHub Actions CI/CD pipeline
 - [x] Docker containerization with docker-compose
-- [x] Cucumber BDD — 7 feature files, 99 scenarios
+- [x] Cucumber BDD — 7 feature files, 99 scenarios (Cypress)
+- [x] Gherkin feature files for all 5 Playwright flow specs
 - [ ] Error message UI (toast notifications, retry buttons)
 - [ ] WebSocket real-time updates
 - [ ] Route optimization

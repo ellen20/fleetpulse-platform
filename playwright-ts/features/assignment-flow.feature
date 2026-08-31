@@ -31,6 +31,7 @@ Feature: Cross-app assignment lifecycle
     And the success message names the correct vehicle and driver
     And the vehicle row shows a "Pending" assignment with the driver's name
     And the assign button is replaced by a cancel button
+    And the vehicle status is "available"
 
     # Driver receives the assignment in the driver app
     When the driver logs into the driver app
